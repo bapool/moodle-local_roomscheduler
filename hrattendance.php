@@ -103,9 +103,10 @@ $students = [];
 if ($myroom) {
     $sql = "SELECT DISTINCT u.id, u.firstname, u.lastname, u.idnumber,
                    s.homeroom, s.intervention_room, s.assignment_code,
-                   s.ela_score, s.math_score
+                   s.ela_score, s.math_score, c.fullname AS dfcoursename
               FROM {user} u
               JOIN {local_roomscheduler_students} s ON s.userid = u.id
+         LEFT JOIN {course} c ON c.id = s.dfcourseid
              WHERE s.homeroom = :homeroom
                AND s.courseid = :courseid
                AND u.deleted = 0
@@ -287,12 +288,13 @@ echo html_writer::tag('th', get_string('lastname',          'local_roomscheduler
 echo html_writer::tag('th', get_string('firstname',         'local_roomscheduler'), ['style' => 'width:13%']);
 echo html_writer::tag('th', get_string('ela_score',         'local_roomscheduler'), ['style' => 'width:5%']);
 echo html_writer::tag('th', get_string('math_score',        'local_roomscheduler'), ['style' => 'width:5%']);
-echo html_writer::tag('th', get_string('homeroom',          'local_roomscheduler'), ['style' => 'width:14%']);
-echo html_writer::tag('th', get_string('intervention_room', 'local_roomscheduler'), ['style' => 'width:14%']);
+echo html_writer::tag('th', get_string('col_monwed',        'local_roomscheduler'), ['style' => 'width:8%; text-align:center;']);
+echo html_writer::tag('th', get_string('col_thurfri',       'local_roomscheduler'), ['style' => 'width:8%; text-align:center;']);
 echo html_writer::tag('th', 'Code',                                                 ['style' => 'width:5%']);
 if ($tracksattendance) {
     echo local_roomscheduler_attendance_header_cells($attcolumns);
 }
+echo html_writer::tag('th', get_string('col_class',         'local_roomscheduler'), ['style' => 'width:20%']);
 echo html_writer::end_tag('tr');
 echo html_writer::end_tag('thead');
 
@@ -312,8 +314,8 @@ foreach ($students as $uid => $student) {
     echo html_writer::tag('td', s($student->firstname));
     echo html_writer::tag('td', $elascore,  ['style' => 'text-align:center;']);
     echo html_writer::tag('td', $mathscore, ['style' => 'text-align:center;']);
-    echo html_writer::tag('td', s($student->homeroom));
-    echo html_writer::tag('td', s($student->intervention_room));
+    echo html_writer::tag('td', s($student->homeroom),          ['style' => 'text-align:center;']);
+    echo html_writer::tag('td', s($student->intervention_room), ['style' => 'text-align:center;']);
     echo html_writer::tag('td',
         html_writer::span(s($student->assignment_code), 'badge badge-secondary'),
         ['style' => 'text-align:center;']
@@ -323,6 +325,9 @@ foreach ($students as $uid => $student) {
         echo local_roomscheduler_attendance_cells($uid, $attcolumns, $studenttypes[$uid] ?? [],
             $existingattendance);
     }
+
+    // Class: the course whose D/F grade placed the student here (D/F codes only).
+    echo local_roomscheduler_class_cell($student);
 
     echo html_writer::end_tag('tr');
 }

@@ -220,5 +220,20 @@ function xmldb_local_roomscheduler_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026102902, 'local', 'roomscheduler');
     }
 
+    if ($oldversion < 2026103000) {
+
+        // Add dfcourseid: the course whose D/F grade placed the student in their
+        // Thur/Fri room, shown as "Class" on the teacher attendance pages.
+        $table = new xmldb_table('local_roomscheduler_students');
+        $field = new xmldb_field('dfcourseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0',
+            'assignment_code');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2026103000, 'local', 'roomscheduler');
+    }
+
     return true;
 }

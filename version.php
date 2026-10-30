@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_roomscheduler';
-$plugin->version   = 2026102902;
+$plugin->version   = 2026103000;
 $plugin->requires  = 2024100700;  // Moodle 4.5 minimum
 $plugin->maturity  = MATURITY_BETA;
-$plugin->release   = '0.5.13';
+$plugin->release   = '0.5.14';

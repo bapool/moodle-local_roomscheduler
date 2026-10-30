@@ -154,7 +154,7 @@ if ($canmanage && optional_param('exportassignments', 0, PARAM_INT)) {
     $out = fopen('php://output', 'w');
     fputcsv($out, [
         'First Name', 'Last Name', 'Grade', 'SSID',
-        'ELA Level', 'Math Level', 'Intervention Homeroom', 'Intervention Thur/Fri',
+        'ELA Level', 'Math Level', 'Intervention', 'Thur/Fri Intervention',
     ]);
     foreach ($students as $student) {
         $rec = $bystudent[$student->id] ?? null;
@@ -376,8 +376,8 @@ if ($canmanage) {
     echo html_writer::tag('th', get_string('sisid',             'local_roomscheduler'), ['style' => 'width:9%']);
     echo html_writer::tag('th', get_string('ela_score',         'local_roomscheduler'), ['style' => 'width:7%']);
     echo html_writer::tag('th', get_string('math_score',        'local_roomscheduler'), ['style' => 'width:7%']);
-    echo html_writer::tag('th', get_string('homeroom', 'local_roomscheduler'), ['style' => 'width:16%']);
-    echo html_writer::tag('th', get_string('intervention_room', 'local_roomscheduler'), ['style' => 'width:16%']);
+    echo html_writer::tag('th', 'Mon-Wed', ['style' => 'width:16%']);
+    echo html_writer::tag('th', 'Thur/Fri', ['style' => 'width:16%']);
     echo html_writer::tag('th', 'Code', ['style' => 'width:7%; white-space:nowrap;']);
     echo html_writer::end_tag('tr');
     echo html_writer::end_tag('thead');
@@ -494,8 +494,8 @@ if ($canmanage) {
     echo html_writer::tag('th', get_string('sisid',             'local_roomscheduler'));
     echo html_writer::tag('th', get_string('ela_score',         'local_roomscheduler'));
     echo html_writer::tag('th', get_string('math_score',        'local_roomscheduler'));
-    echo html_writer::tag('th', get_string('homeroom', 'local_roomscheduler'));
-    echo html_writer::tag('th', get_string('intervention_room', 'local_roomscheduler'));
+    echo html_writer::tag('th', 'Mon-Wed');
+    echo html_writer::tag('th', 'Thur/Fri');
     echo html_writer::tag('th', 'Code');
     echo html_writer::end_tag('tr');
     echo html_writer::end_tag('thead');

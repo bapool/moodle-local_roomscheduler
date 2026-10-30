@@ -300,8 +300,8 @@ if ($canmanage) {
     echo html_writer::tag('th', get_string('interventiontype', 'local_roomscheduler'), ['style' => 'width:15%']);
     echo html_writer::tag('th', get_string('gradelevel',        'local_roomscheduler'), ['style' => 'width:10%']);
     echo html_writer::tag('th', 'Max #',                                            ['style' => 'width:8%']);
-    echo html_writer::tag('th', get_string('homeroomshort', 'local_roomscheduler'),    ['style' => 'width:8%']);
-    echo html_writer::tag('th', get_string('thurfrishort', 'local_roomscheduler'),     ['style' => 'width:8%']);
+    echo html_writer::tag('th', 'Mon-Wed',                                             ['style' => 'width:8%']);
+    echo html_writer::tag('th', 'Thur/Fri',                                            ['style' => 'width:8%']);
     echo html_writer::tag('th', 'Reward',                                              ['style' => 'width:6%; text-align:center;']);
     echo html_writer::end_tag('tr');
     echo html_writer::end_tag('thead');

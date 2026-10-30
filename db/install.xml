@@ -35,6 +35,7 @@
         <FIELD NAME="homeroom"         TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT=""   SEQUENCE="false" COMMENT="Student homeroom number"/>
         <FIELD NAME="intervention_room" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT=""  SEQUENCE="false" COMMENT="Assigned intervention room"/>
         <FIELD NAME="assignment_code"  TYPE="char" LENGTH="2"  NOTNULL="true" DEFAULT=""   SEQUENCE="false" COMMENT="Code explaining assignment reason"/>
+        <FIELD NAME="dfcourseid"       TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  SEQUENCE="false" COMMENT="Course whose D/F grade placed the student in their Thur/Fri room (0 = not a D/F placement)"/>
         <FIELD NAME="timecreated"      TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  SEQUENCE="false"/>
         <FIELD NAME="timemodified"     TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  SEQUENCE="false"/>
       </FIELDS>

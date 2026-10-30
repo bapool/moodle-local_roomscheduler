@@ -6,18 +6,18 @@ A Moodle local plugin for automated high school intervention room scheduling bas
 
 This plugin addresses the Ohio state mandate requiring additional ELA and Math instruction time for students failing assessment tests. It handles two related but distinct jobs:
 
-1. **Intervention Homeroom** (Mon-Wed) — each student's base room. It is set from the counselor's file with the **Import Rooms** page, or typed in on the Students page. (This is what the district used to call the Blazer Room.)
-2. **Intervention Thur/Fri** — filled each week by the **weekly scheduler** based on test scores, course grades, teacher requests, attendance, behavior, and room capacity.
+1. **Intervention** (Mon-Wed) — each student's base room. It is set from the counselor's file with the **Import Rooms** page, or typed in on the Students page. (This is what the district used to call the Blazer Room.)
+2. **Thur/Fri Intervention** — filled each week by the **weekly scheduler** based on test scores, course grades, teacher requests, attendance, behavior, and room capacity.
 
-**Naming note (0.5.13):** the database field `homeroom` holds the Intervention Homeroom and `intervention_room` holds the Intervention Thur/Fri room. Before 0.5.13 the pages called these "Intervention" and "Thur/Fri Intervention", and there was a separate Blazer Room field and import that is now removed.
+**Naming note:** the database field `homeroom` holds the Mon-Wed room, shown on pages as **Intervention** (or **Mon-Wed**), and `intervention_room` holds the Thur/Fri room, shown as **Thur/Fri Intervention** (or **Thur/Fri**). Teachers already know these labels, so they are kept as-is. The old separate Blazer Room field and import were removed in 0.5.13.
 
 Navigation across the plugin is tab-based (styled after the district's "My Student Data" plugin): one tab bar for the four teacher-facing Intervention/attendance pages, another for the admin/manager hub pages (Room Settings, Students, Assignments, All Requests, Attendance Report, Run Scheduler, Import Rooms, Set Levels).
 
 ## Features
 
 - **Room Management** — Configure teachers, room numbers, capacities, intervention types (ELA1+, ELA1, ELA2, MTH1+, MTH1, MTH2, GEN, IEP, NA), grade preference (9/10/11/12/Open), and reward-room status
-- **Student Scoring** — Manual entry, or CSV import/export, of ELA/Math intervention priority scores (1-3), Intervention Homeroom and Intervention Thur/Fri rooms
-- **Import Rooms** — Upload a CSV (for example the Export Room Assignments file from production, or a counselor's file) to set ELA/Math Levels, Intervention Homeroom and Intervention Thur/Fri rooms. Shows a preview of every change before anything is saved
+- **Student Scoring** — Manual entry, or CSV import/export, of ELA/Math intervention priority scores (1-3), Intervention (Mon-Wed) and Thur/Fri Intervention rooms
+- **Import Rooms** — Upload a CSV (for example the Export Room Assignments file from production, or a counselor's file) to set ELA/Math Levels, Intervention (Mon-Wed) and Thur/Fri Intervention rooms. Shows a preview of every change before anything is saved
 - **Set Levels from State Tests** — One-click import of intervention levels from Ohio State Test scores in `NTstatetesting`; seniors are automatically capped at level 2 (never level 1)
 - **Intervention Counts** — Per-grade breakdown of ELA/Math Level 1 and Level 2 counts, plus a "Both ELA & Math" count of students needing intervention in both subjects
 - **Teacher Requests** — Teachers can request specific students for intervention from any course in the HS category
@@ -30,6 +30,7 @@ Navigation across the plugin is tab-based (styled after the district's "My Stude
 - **Behavior Denial** — Principal can deny reward room via behavior tracking
 - **Attendance Tracking** — ELA and Math teachers record student attendance at intervention sessions, with a Th/Fri Intervention column visible on the Intervention (homeroom) attendance page too
 - **IEP Attendance** — IEP teachers record attendance for every student in their room, whatever their levels, using separate ELA and Math checkboxes (one subject per student per day) so each session is credited to the right subject. Check All ELA / Check All Math buttons match the lesson taught
+- **Class column** (0.5.14) — For D/F-placed students, both teacher attendance pages and the Assignments page (printed for subs) show the full name of the course with the D/F grade, so the teacher or sub knows why the student is there. It is in normal font, cut to the cell width with "…", and hovering shows the whole name. The scheduler saves the course in `dfcourseid` on each run, so it is blank until the scheduler has run. These pages label the room columns **Mon-Wed** / **Thur-Fri**, centered.
 - **Attendance Reports** — ELA summary, Math summary, and individual student date-by-date reports, filterable by group (the individual student list only shows students who have recorded sessions)
 - **Assignments Viewer** — Pick any room and either Intervention or Th/Fri Intervention to see everyone currently assigned there. The Room dropdown is sorted by teacher name (Last, First) with the room number after it, since most staff know the teacher but not the room. Shared rooms list every teacher in one entry.
 - **Print-friendly Reports** — Clean, single-page print output (no Moodle chrome) for attendance pages, the Assignments viewer, and Attendance Report
@@ -38,9 +39,9 @@ Navigation across the plugin is tab-based (styled after the district's "My Stude
 
 ## Import Rooms
 
-The **Import Rooms** tab sets ELA/Math Levels and Intervention Homeroom / Intervention Thur/Fri rooms from a CSV file. It was rebuilt in 0.5.13 so the assignments on production can be copied to the sandbox, and so the counselor's file can be loaded.
+The **Import Rooms** tab sets ELA/Math Levels and Intervention (Mon-Wed) / Thur/Fri Intervention rooms from a CSV file. It was rebuilt in 0.5.13 so the assignments on production can be copied to the sandbox, and so the counselor's file can be loaded.
 
-- **Columns are matched by header name**, in any order, so the **Export Room Assignments** file from the Students page imports as-is. Accepted headers: `SSID` (required), `ELA Level`, `Math Level`, `Intervention Homeroom`, `Intervention Thur/Fri`. The old headers `Intervention` and `Thur/Fri Intervention`, and the short ones `sisid, ela, math, homeroom, thurfri`, also work. Other columns (name, grade, the old Blazer Room) are ignored.
+- **Columns are matched by header name**, in any order, so the **Export Room Assignments** file from the Students page imports as-is. Accepted headers: `SSID` (required), `ELA Level`, `Math Level`, `Intervention`, `Thur/Fri Intervention`. The headers `Intervention Homeroom` and `Intervention Thur/Fri`, and the short ones `sisid, ela, math, homeroom, thurfri`, also work. Other columns (name, grade, the old Blazer Room) are ignored.
 - **Only the columns in the file are changed**, and students not in the file are not touched. A counselor's file can be just `SSID` plus one room column.
 - **A blank room cell clears that room**, so importing the production export makes the sandbox a true copy. A blank ELA/Math Level is left as it is.
 - Rooms must be 100–299, and levels must be 1, 2 or 3. Bad values, and SSIDs that aren't students in the counselor course, are listed and skipped.
@@ -53,7 +54,7 @@ The **Import Rooms** tab sets ELA/Math Levels and Intervention Homeroom / Interv
 
 The weekly scheduler (Run Scheduler page, or the scheduled task) fills the **Th/Fri Intervention** room using a 6-step priority-based assignment.
 
-**Eligibility rule:** a student with no **Intervention** (Mon-Wed) room is never given a Th/Fri room. These students are removed from the scheduler's working list before any step runs, so none of the steps below (including Lock IEP, Lock All Rooms, and Reward) can place them. They are counted as skipped and their Th/Fri room is left blank. To include a student, give them an Intervention Homeroom first (Students page or Import Rooms).
+**Eligibility rule:** a student with no **Intervention** (Mon-Wed) room is never given a Th/Fri room. These students are removed from the scheduler's working list before any step runs, so none of the steps below (including Lock IEP, Lock All Rooms, and Reward) can place them. They are counted as skipped and their Th/Fri room is left blank. To include a student, give them an Intervention (Mon-Wed) room first (Students page or Import Rooms).
 
 The steps:
 

@@ -166,6 +166,8 @@ function local_roomscheduler_run_scheduler() {
         ['courseid' => $counselorcourseid]);
     $DB->set_field('local_roomscheduler_students', 'assignment_code', '',
         ['courseid' => $counselorcourseid]);
+    $DB->set_field('local_roomscheduler_students', 'dfcourseid', 0,
+        ['courseid' => $counselorcourseid]);
 
     // --- Load rooms ---
     $roomrecords = $DB->get_records('local_roomscheduler_rooms', null, '', '*');
@@ -1043,6 +1045,7 @@ function local_roomscheduler_run_scheduler() {
             if (isset($plusRooms[$room->teacherid])) {
                 if ($placeDFWithOtherTeacher($uid, $room, $code, $priority)) {
                     $step3done[$uid] = true;
+                    $assigned[$uid]['dfcourseid'] = (int)$dfa['courseid']; // Shown as "Class".
                     $results['step3']++;
                     $results['step3plus']++;
                     break;
@@ -1055,14 +1058,17 @@ function local_roomscheduler_run_scheduler() {
             if ($cap > 0 && $usage < $cap) {
                 $assignStudent($uid, $room, $code, $priority);
                 $step3done[$uid] = true;
+                $assigned[$uid]['dfcourseid'] = (int)$dfa['courseid']; // Shown as "Class".
                 $results['step3']++;
                 break;
             } else if ($swapToKeepOwnTeacher($uid, $room, $code, $priority)) {
                 $step3done[$uid] = true;
+                $assigned[$uid]['dfcourseid'] = (int)$dfa['courseid']; // Shown as "Class".
                 $results['step3']++;
                 break;
             } else if ($forceAssign($uid, $room, $code, $priority)) {
                 $step3done[$uid] = true;
+                $assigned[$uid]['dfcourseid'] = (int)$dfa['courseid']; // Shown as "Class".
                 $results['step3']++;
                 break;
             }
@@ -1364,6 +1370,7 @@ function local_roomscheduler_run_scheduler() {
             $rec->id                = $stuByUser[$userid]->id;
             $rec->intervention_room = $data['room'];
             $rec->assignment_code   = $data['code'];
+            $rec->dfcourseid        = $data['dfcourseid'] ?? 0;
             $rec->timemodified      = $now;
             $DB->update_record('local_roomscheduler_students', $rec);
         }

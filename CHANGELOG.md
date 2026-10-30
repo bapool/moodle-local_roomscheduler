@@ -4,6 +4,18 @@ All notable changes to the NTHS Intervention Room Scheduler plugin will be docum
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to date-based versioning (YYYYMMDDXX).
 
+## [2026103000] - 2026-10-30 (0.5.14)
+
+### Added
+- **Class column on both teacher attendance pages** (Intervention and Thur/Fri Inter) **and on the Assignments page** (printed for subs). For students placed because of a D or F grade (codes D/F, with or without an A/B suffix), it shows the full name of the course they have the D/F in, so the teacher or sub knows why the student is there. It is the last column, in the table's normal font, kept on one line and cut to the cell width with "…". Hovering shows the full name. On paper a long name prints cut off.
+- New `dfcourseid` field on `local_roomscheduler_students` (upgrade step). The scheduler fills it when it places a D/F student and clears it on every run, so the column is blank until the scheduler runs once after upgrading.
+
+### Changed
+- On both teacher attendance pages and the Assignments page, the "Intervention" / "Thur/Fri Intervention" column headers are now **Mon-Wed** / **Thur-Fri** (new strings `col_monwed`, `col_thurfri`). The hyphen lets both headers wrap onto two lines, making the columns narrower. These two columns are centered. Other pages keep their wording.
+
+### Reverted (from 0.5.13, by request)
+- Teacher-facing labels are back to the originals: the tabs "Intervention" / "Thur/Fri Inter", the headings "Intervention Attendance" / "Thur/Fri Attendance", and the column strings "Intervention" / "Thur/Fri Intervention". The Students and Room Settings pages are back to "Mon-Wed" / "Thur/Fri". The export file headers are back to "Intervention" / "Thur/Fri Intervention", and the Blazer Room column stays removed. The Import page heading is now "Import Intervention and Thur/Fri Intervention Rooms".
+
 ## [2026102902] - 2026-10-29 (0.5.13)
 
 ### Changed

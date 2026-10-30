@@ -115,13 +115,13 @@ $string['gotorooms']               = 'Room Settings';
 $string['nosisid']                 = 'No SIS ID';
 
 // Room fields for students.
-$string['homeroom']           = 'Intervention Homeroom';
-$string['intervention_room']  = 'Intervention Thur/Fri';
+$string['homeroom']           = 'Intervention';
+$string['intervention_room']  = 'Thur/Fri Intervention';
 $string['notassigned']        = 'Not Assigned';
 
 // Import strings.
 $string['importtitle']        = 'Import Intervention Rooms';
-$string['importmaintitle']    = 'Import Intervention Homeroom and Thur/Fri Rooms';
+$string['importmaintitle']    = 'Import Intervention and Thur/Fri Intervention Rooms';
 $string['importbutton']       = 'Import Rooms';
 $string['exportcsv']           = 'Export CSV';
 $string['exportassignmentsbutton'] = 'Export Room Assignments';
@@ -134,7 +134,7 @@ $string['intschedulermathlevel2'] = 'Math Level 2';
 $string['intschedulertotal']      = 'Total';
 $string['intschedulerboth']       = 'Both ELA & Math';
 $string['intschedulerunknowngrade'] = 'Unknown Grade';
-$string['importinstructions'] = '<p>Upload a CSV file with a header row. The <strong>Export Room Assignments</strong> file from the Students page, on this server or another one, can be imported as-is.</p><p>Columns are matched by their header names, in any order: <strong>SSID</strong> (required), <strong>ELA Level</strong>, <strong>Math Level</strong>, <strong>Intervention Homeroom</strong>, <strong>Intervention Thur/Fri</strong>. The older headers <em>Intervention</em> and <em>Thur/Fri Intervention</em> also work. Any other columns, such as name or grade, are ignored.</p><ul><li>Only the columns in the file are changed. Students not in the file are not changed.</li><li>A blank room cell clears that room. A blank ELA or Math Level is left as it is.</li><li>Rooms must be 100 to 299. ELA and Math Levels must be 1, 2 or 3.</li><li>Nothing is saved until you check the preview and click <strong>Confirm Import</strong>.</li></ul>';
+$string['importinstructions'] = '<p>Upload a CSV file with a header row. The <strong>Export Room Assignments</strong> file from the Students page, on this server or another one, can be imported as-is.</p><p>Columns are matched by their header names, in any order: <strong>SSID</strong> (required), <strong>ELA Level</strong>, <strong>Math Level</strong>, <strong>Intervention</strong>, <strong>Thur/Fri Intervention</strong>. Any other columns, such as name or grade, are ignored.</p><ul><li>Only the columns in the file are changed. Students not in the file are not changed.</li><li>A blank room cell clears that room. A blank ELA or Math Level is left as it is.</li><li>Rooms must be 100 to 299. ELA and Math Levels must be 1, 2 or 3.</li><li>Nothing is saved until you check the preview and click <strong>Confirm Import</strong>.</li></ul>';
 $string['importfile']         = 'CSV File';
 $string['importsubmit']       = 'Upload and Preview';
 $string['importnotfound']     = 'SSIDs in the file that are not students in this course (skipped)';
@@ -146,18 +146,16 @@ $string['importfield']        = 'Field';
 $string['importnofile']       = 'No file was uploaded.';
 $string['importpreview']        = 'Preview — nothing has been saved yet. Check the changes below, then click Confirm Import.';
 $string['importpreviewsummary'] = '{$a->rows} students in the file matched this course. {$a->changed} will change and {$a->unchanged} already match. Columns used: {$a->columns}.';
-$string['importcodenote']       = 'When a student\'s Intervention Thur/Fri room changes, their assignment code is cleared. The scheduler sets it again on its next run.';
+$string['importcodenote']       = 'When a student\'s Thur/Fri Intervention room changes, their assignment code is cleared. The scheduler sets it again on its next run.';
 $string['importinvalid']        = 'Values that are not valid (skipped)';
 $string['importnosisidcol']     = 'The file has no SSID column. Check that the first row is the header row.';
-$string['importnodatacols']     = 'The file has no ELA Level, Math Level, Intervention Homeroom or Intervention Thur/Fri column.';
+$string['importnodatacols']     = 'The file has no ELA Level, Math Level, Intervention or Thur/Fri Intervention column.';
 $string['importexpired']        = 'The preview has expired. Please upload the file again.';
 $string['importconfirm']        = 'Confirm Import';
 $string['importcancel']         = 'Cancel';
 $string['importstudent']        = 'Student';
 $string['importnewrecord']      = '(new)';
 $string['importblank']          = '(blank)';
-$string['homeroomshort']        = 'Homeroom';
-$string['thurfrishort']         = 'Thur/Fri';
 $string['importinvalidfile']  = 'Invalid file type. Please upload a CSV file.';
 $string['importsuccess']      = 'Import complete. {$a} students were added or changed.';
 
@@ -235,10 +233,13 @@ $string['assignmentcode'] = 'Code';
 $string['assignmentcode_desc'] = 'E=ELA Move, M=Math Move, Q=Requested, F=F Grade, D=D Grade, R=Reward, G=General, S=Displaced, H=Home Intervention room';
 
 // Attendance strings.
-$string['hrattendance']          = 'Intervention Homeroom';
-$string['intattendance']         = 'Intervention Thur/Fri';
-$string['hrattendance_heading']  = 'Intervention Homeroom Attendance';
-$string['intattendance_heading'] = 'Intervention Thur/Fri Attendance';
+$string['hrattendance']          = 'Intervention';
+$string['intattendance']         = 'Thur/Fri Inter';
+$string['hrattendance_heading']  = 'Intervention Attendance';
+$string['intattendance_heading'] = 'Thur/Fri Attendance';
+$string['col_monwed']            = 'Mon-Wed';
+$string['col_thurfri']           = 'Thur-Fri';
+$string['col_class']             = 'Class';
 $string['attendancedate']        = 'Attendance Date';
 $string['checkall']              = 'Check All Present';
 $string['saveattendance']        = 'Save Attendance';
@@ -306,6 +307,7 @@ $string['privacy:metadata:students:math_score']              = 'The Math assessm
 $string['privacy:metadata:students:homeroom']                = 'The student\'s Intervention Homeroom (Mon-Wed room).';
 $string['privacy:metadata:students:intervention_room']       = 'The room assigned by the intervention scheduler.';
 $string['privacy:metadata:students:assignment_code']         = 'The reason code for the current intervention assignment.';
+$string['privacy:metadata:students:dfcourseid']      = 'The course whose D or F grade placed the student in their Thur/Fri intervention room.';
 
 $string['privacy:metadata:requests']                         = 'Teacher requests for student intervention.';
 $string['privacy:metadata:requests:userid']                  = 'The Moodle user ID of the student being requested.';

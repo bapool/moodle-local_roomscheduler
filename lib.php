@@ -887,3 +887,33 @@ function local_roomscheduler_attendance_checkall_buttons(array $columns): string
                        . 'document.querySelectorAll(".attendance-cb-e").forEach(cb => cb.checked = false);',
         ]);
 }
+
+/**
+ * Renders the "Class" table cell on the attendance and Assignments pages.
+ *
+ * Shows the full name of the course whose D/F grade placed the student in
+ * their Thur/Fri room. It is only filled for D and F codes (including codes
+ * with an A/B suffix). The name is kept on one line, in the table's normal
+ * font, and cut to the width of the cell with "…". Hovering shows the whole
+ * course name.
+ *
+ * @param stdClass $student Row with assignment_code and dfcoursename.
+ * @return string HTML for the whole <td>.
+ */
+function local_roomscheduler_class_cell(stdClass $student): string {
+    // max-width:0 lets the cell keep its header width instead of growing to
+    // fit the course name, so the name is cropped rather than widening the table.
+    $tdattrs = ['style' => 'max-width:0;'];
+    $code    = (string)($student->assignment_code ?? '');
+    $name    = trim((string)($student->dfcoursename ?? ''));
+    if ($name === '' || !in_array(substr($code, 0, 1), ['D', 'F'], true)) {
+        return html_writer::tag('td', '', $tdattrs);
+    }
+    $plain = format_string($name, true, ['escape' => false]);
+    $inner = html_writer::div(format_string($name), 'roomscheduler-classname', [
+        'title' => $plain,
+        'style' => 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;',
+    ]);
+    return html_writer::tag('td', $inner, $tdattrs);
+}
+

@@ -61,6 +61,7 @@ class provider implements
                 'homeroom'          => 'privacy:metadata:students:homeroom',
                 'intervention_room' => 'privacy:metadata:students:intervention_room',
                 'assignment_code'   => 'privacy:metadata:students:assignment_code',
+                'dfcourseid'        => 'privacy:metadata:students:dfcourseid',
             ],
             'privacy:metadata:students'
         );
@@ -187,6 +188,7 @@ class provider implements
                     'homeroom'          => $s->homeroom,
                     'intervention_room' => $s->intervention_room,
                     'assignment_code'   => $s->assignment_code,
+                    'dfcourseid'        => $s->dfcourseid,
                 ];
             }
             writer::with_context($context)->export_data(
