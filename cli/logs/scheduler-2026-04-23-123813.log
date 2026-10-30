@@ -1,0 +1,17 @@
+== Intervention Room Scheduler ==
+Starting scheduler run at 2026-04-23 12:38:13
+
+=== Scheduler Results ===
+Step 1 (Cross-subject swaps): 33
+Step 2 (Teacher requests):    5
+Step 3 (D/F grades):          82
+Step 4 (Reward room):         66
+Step 4.5 (Denied reward):     5
+Step 5 (Other moves S):       21
+Step 6 (Homeroom default):    57
+
+Total students assigned: 243
+Total skipped (no HR):   44
+
+Completed in 0.21 seconds.
+Log written to: /var/www/html/local/roomscheduler/cli/logs/scheduler-2026-04-23-123813.log

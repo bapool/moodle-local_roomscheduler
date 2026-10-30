@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/roomscheduler/db" VERSION="20260805" COMMENT="XMLDB file for local_roomscheduler"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
+  <TABLES>
+
+    <TABLE NAME="local_roomscheduler_rooms" COMMENT="Stores teacher room assignments for intervention scheduling">
+      <FIELDS>
+        <FIELD NAME="id"               TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="teacherid"        TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="User ID of the teacher"/>
+        <FIELD NAME="roomnumber"       TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false" COMMENT="Teacher room number"/>
+        <FIELD NAME="maxstudents"      TYPE="int"  LENGTH="4"  NOTNULL="true" DEFAULT="0"   SEQUENCE="false" COMMENT="Max students allowed in this room"/>
+        <FIELD NAME="interventiontype" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="NA"  SEQUENCE="false" COMMENT="Type: ELA1P, ELA1, ELA2, MTH1P, MTH1, MTH2, GEN, IEP, NA"/>
+        <FIELD NAME="isrewardroom"     TYPE="int"  LENGTH="1"  NOTNULL="true" DEFAULT="0"   SEQUENCE="false" COMMENT="1 if this room is a reward room"/>
+        <FIELD NAME="gradelevel"       TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="Open" SEQUENCE="false" COMMENT="Grade preference: 9, 10, 11, 12, or Open"/>
+        <FIELD NAME="timecreated"      TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"   SEQUENCE="false"/>
+        <FIELD NAME="timemodified"     TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"   SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary"   TYPE="primary" FIELDS="id"/>
+        <KEY NAME="teacherid" TYPE="foreign" FIELDS="teacherid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="interventiontype" UNIQUE="false" FIELDS="interventiontype"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_roomscheduler_students" COMMENT="Stores per-student intervention scores and room assignments">
+      <FIELDS>
+        <FIELD NAME="id"               TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid"           TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="User ID of the student"/>
+        <FIELD NAME="courseid"         TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Course ID (teacher source course)"/>
+        <FIELD NAME="ela_score"        TYPE="int"  LENGTH="1"  NOTNULL="true" DEFAULT="3"  SEQUENCE="false" COMMENT="State ELA score: 1, 2, or 3"/>
+        <FIELD NAME="math_score"       TYPE="int"  LENGTH="1"  NOTNULL="true" DEFAULT="3"  SEQUENCE="false" COMMENT="State Math score: 1, 2, or 3"/>
+        <FIELD NAME="homeroom"         TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT=""   SEQUENCE="false" COMMENT="Student homeroom number"/>
+        <FIELD NAME="intervention_room" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT=""  SEQUENCE="false" COMMENT="Assigned intervention room"/>
+        <FIELD NAME="assignment_code"  TYPE="char" LENGTH="2"  NOTNULL="true" DEFAULT=""   SEQUENCE="false" COMMENT="Code explaining assignment reason"/>
+        <FIELD NAME="timecreated"      TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  SEQUENCE="false"/>
+        <FIELD NAME="timemodified"     TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary"  TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid"   TYPE="foreign" FIELDS="userid"   REFTABLE="user"   REFFIELDS="id"/>
+        <KEY NAME="courseid" TYPE="foreign" FIELDS="courseid" REFTABLE="course" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userid-courseid" UNIQUE="true" FIELDS="userid, courseid"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_roomscheduler_requests" COMMENT="Stores teacher intervention requests for students">
+      <FIELDS>
+        <FIELD NAME="id"           TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid"       TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="User ID of the student being requested"/>
+        <FIELD NAME="teacherid"    TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="User ID of the requesting teacher"/>
+        <FIELD NAME="requested"    TYPE="int" LENGTH="1"  NOTNULL="true" DEFAULT="0"  SEQUENCE="false" COMMENT="1 = requested, 0 = not"/>
+        <FIELD NAME="timecreated"  TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"  SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"  SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary"   TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid"    TYPE="foreign" FIELDS="userid"    REFTABLE="user" REFFIELDS="id"/>
+        <KEY NAME="teacherid" TYPE="foreign" FIELDS="teacherid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userid-teacherid" UNIQUE="true" FIELDS="userid, teacherid"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_roomscheduler_attendance" COMMENT="Stores intervention attendance records">
+      <FIELDS>
+        <FIELD NAME="id"             TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="teacherid"      TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="User ID of the teacher taking attendance"/>
+        <FIELD NAME="studentid"      TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="User ID of the student"/>
+        <FIELD NAME="attendancetype" TYPE="char" LENGTH="2"  NOTNULL="true" DEFAULT="E"  SEQUENCE="false" COMMENT="Type: E=ELA, M=Math, H=Homeroom"/>
+        <FIELD NAME="attendancedate" TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  SEQUENCE="false" COMMENT="Unix timestamp of the session date"/>
+        <FIELD NAME="present"        TYPE="int"  LENGTH="1"  NOTNULL="true" DEFAULT="0"  SEQUENCE="false" COMMENT="1 = present, 0 = absent"/>
+        <FIELD NAME="timesaved"      TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary"   TYPE="primary" FIELDS="id"/>
+        <KEY NAME="teacherid" TYPE="foreign" FIELDS="teacherid" REFTABLE="user" REFFIELDS="id"/>
+        <KEY NAME="studentid" TYPE="foreign" FIELDS="studentid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="teacher-student-type-date" UNIQUE="true" FIELDS="teacherid, studentid, attendancetype, attendancedate"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_roomscheduler_teacher_prefs" COMMENT="Stores per-teacher scheduling preferences">
+      <FIELDS>
+        <FIELD NAME="id"         TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="teacherid"  TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="User ID of the teacher"/>
+        <FIELD NAME="persistent" TYPE="int" LENGTH="1"  NOTNULL="true" DEFAULT="0"  SEQUENCE="false" COMMENT="1 = keep same students each week"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary"   TYPE="primary" FIELDS="id"/>
+        <KEY NAME="teacherid" TYPE="foreign" FIELDS="teacherid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+
+    <TABLE NAME="local_roomscheduler_request_archive" COMMENT="Archived weekly teacher requests after scheduler runs">
+      <FIELDS>
+        <FIELD NAME="id"           TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid"       TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="User ID of the student"/>
+        <FIELD NAME="teacherid"    TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="User ID of the teacher"/>
+        <FIELD NAME="weekof"       TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"  SEQUENCE="false" COMMENT="Unix timestamp of the Monday of the archived week"/>
+        <FIELD NAME="timearchived" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"  SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary"   TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid"    TYPE="foreign" FIELDS="userid"    REFTABLE="user" REFFIELDS="id"/>
+        <KEY NAME="teacherid" TYPE="foreign" FIELDS="teacherid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userid-teacherid-weekof" UNIQUE="false" FIELDS="userid, teacherid, weekof"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_roomscheduler_behavior" COMMENT="Stores student behavior flags that may restrict room assignment">
+      <FIELDS>
+        <FIELD NAME="id"           TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid"       TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="User ID of the student"/>
+        <FIELD NAME="sisid"        TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT=""   SEQUENCE="false" COMMENT="SIS/student ID number"/>
+        <FIELD NAME="denied"       TYPE="int"  LENGTH="1"  NOTNULL="true" DEFAULT="0"  SEQUENCE="false" COMMENT="1 = denied reward room due to behavior"/>
+        <FIELD NAME="incidents"    TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  SEQUENCE="false" COMMENT="Number of behavior incidents"/>
+        <FIELD NAME="timemodified" TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  SEQUENCE="false"/>
+        <FIELD NAME="modifiedby"   TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  SEQUENCE="false" COMMENT="User ID of last editor"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid"  TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+
+  </TABLES>
+</XMLDB>
