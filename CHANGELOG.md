@@ -4,6 +4,23 @@ All notable changes to the NTHS Intervention Room Scheduler plugin will be docum
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to date-based versioning (YYYYMMDDXX).
 
+## [2026112300] - 2026-11-23 (0.5.18)
+
+### Fixed
+- **Two stray lines before `<?php` in `requests.php`.** Two copies of table-header code had been pasted above the opening `<?php` tag. PHP sent them to the browser as plain text at the top of the Intervention Requests page, and the PHPDoc Checker skipped the whole file. Removed; the same header cells were already in the table further down.
+- Missing `@param` lines in the docblocks for `local_roomscheduler_get_hs_courses()` (`scheduler.php`) and `local_roomscheduler_print_intervention_tabs()` (`lib.php`, the `$showbehavior` parameter).
+
+### Changed
+- **Code cleanup so the GitHub workflow passes the Moodle Code Checker and PHPDoc Checker.** No change to what the plugin does, what users see or the database.
+  - Spacing, line breaks, braces on one-line `if` statements and `list()` changed to `[]` (applied with Moodle's `phpcbf`).
+  - Local variables renamed to Moodle style, all lowercase with no underscores (for example `$stuByUser` to `$stubyuser`, `$teacherCourses` to `$teachercourses`). 65 names in all.
+  - Language strings sorted alphabetically by key and section comments removed. All 273 strings and their wording are unchanged.
+  - Inline comments start with a capital letter and end with a period. Decorative `// ====` and `// ----` divider lines removed.
+  - Docblocks added to the privacy provider class and its methods and to `xmldb_local_roomscheduler_upgrade()`.
+  - Removed the unneeded `defined('MOODLE_INTERNAL') || die();` line from `lib.php`, `scheduler.php`, `classes/observer.php`, `classes/privacy/provider.php` and `db/upgrade.php`.
+  - Long lines wrapped. The Reset Student Data confirmation text on the Intervention Rooms page is split across lines in the code only; the message is the same.
+- No database change.
+
 ## [2026111700] - 2026-11-17 (0.5.17)
 
 ### Fixed

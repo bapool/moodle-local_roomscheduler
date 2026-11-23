@@ -22,8 +22,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Returns HTML for the assignment code legend.
  */
@@ -110,26 +108,33 @@ function local_roomscheduler_extend_navigation_course($parentnode, $course, $con
     $isadmin       = is_siteadmin();
     $managerroleid = $DB->get_field('role', 'id', ['shortname' => 'manager']);
     $ismanager     = !empty($managerroleid) && user_has_role_assignment(
-                         $USER->id, $managerroleid, $context->id);
+        $USER->id,
+        $managerroleid,
+        $context->id
+    );
 
-    // --- Single "Intervention" link (HS category courses, teachers/admins) ---
+    // Single "Intervention" link (HS category courses, teachers/admins).
     if (!empty($hscategoryid)) {
         $coursecatid = (int)$course->category;
         if (local_roomscheduler_is_in_category($coursecatid, $hscategoryid)) {
             $teacherroleid  = $DB->get_field('role', 'id', ['shortname' => 'editingteacher']);
             $teacherroleid2 = $DB->get_field('role', 'id', ['shortname' => 'teacher']);
-            $isteacher      = user_has_role_assignment($USER->id, $teacherroleid,  $context->id)
+            $isteacher      = user_has_role_assignment($USER->id, $teacherroleid, $context->id)
                            || user_has_role_assignment($USER->id, $teacherroleid2, $context->id)
                            || $isadmin || $ismanager;
 
             if ($isteacher) {
                 $dow = (int)date('N');
                 if ($dow <= 3) {
-                    $interventionurl = new moodle_url('/local/roomscheduler/hrattendance.php',
-                        ['courseid' => $course->id]);
+                    $interventionurl = new moodle_url(
+                        '/local/roomscheduler/hrattendance.php',
+                        ['courseid' => $course->id]
+                    );
                 } else {
-                    $interventionurl = new moodle_url('/local/roomscheduler/intattendance.php',
-                        ['courseid' => $course->id]);
+                    $interventionurl = new moodle_url(
+                        '/local/roomscheduler/intattendance.php',
+                        ['courseid' => $course->id]
+                    );
                 }
 
                 $node = navigation_node::create(
@@ -180,10 +185,13 @@ function local_roomscheduler_extend_navigation(global_navigation $navigation) {
     $isadmin       = is_siteadmin();
     $managerroleid = $DB->get_field('role', 'id', ['shortname' => 'manager']);
     $ismanager     = !empty($managerroleid) && user_has_role_assignment(
-                         $USER->id, $managerroleid, $coursecontext->id);
+        $USER->id,
+        $managerroleid,
+        $coursecontext->id
+    );
     $teacherroleid  = $DB->get_field('role', 'id', ['shortname' => 'editingteacher']);
     $teacherroleid2 = $DB->get_field('role', 'id', ['shortname' => 'teacher']);
-    $isteacher      = user_has_role_assignment($USER->id, $teacherroleid,  $coursecontext->id)
+    $isteacher      = user_has_role_assignment($USER->id, $teacherroleid, $coursecontext->id)
                    || user_has_role_assignment($USER->id, $teacherroleid2, $coursecontext->id)
                    || $isadmin || $ismanager;
 
@@ -195,11 +203,15 @@ function local_roomscheduler_extend_navigation(global_navigation $navigation) {
     // Thu(4)/Fri(5)/Sat(6)/Sun(7) → intattendance.
     $dow = (int)date('N');
     if ($dow <= 3) {
-        $interventionurl = new moodle_url('/local/roomscheduler/hrattendance.php',
-            ['courseid' => $course->id]);
+        $interventionurl = new moodle_url(
+            '/local/roomscheduler/hrattendance.php',
+            ['courseid' => $course->id]
+        );
     } else {
-        $interventionurl = new moodle_url('/local/roomscheduler/intattendance.php',
-            ['courseid' => $course->id]);
+        $interventionurl = new moodle_url(
+            '/local/roomscheduler/intattendance.php',
+            ['courseid' => $course->id]
+        );
     }
 
     // Find the course node in the global navigation tree.
@@ -232,11 +244,13 @@ function local_roomscheduler_extend_navigation(global_navigation $navigation) {
 /**
  * Renders the shared tab bar for the four teacher-facing Intervention pages:
  * Home Room Attendance, Intervention Attendance, Intervention Requests, and
- * Request History — plus an optional Intervention Scheduler tab.
+ * Request History — plus optional Intervention Scheduler and Behavior tabs.
  *
- * @param string $current       one of: hrattendance, intattendance, requests, requesthistory
+ * @param string $current       one of: hrattendance, intattendance, requests, requesthistory, behavior
  * @param int    $courseid      current course id, passed through to each tab's URL
  * @param bool   $showscheduler whether to include the Intervention Scheduler tab
+ * @param bool   $showbehavior  whether to include the Behavior tab
+ * @return void
  */
 function local_roomscheduler_print_intervention_tabs($current, $courseid, $showscheduler, $showbehavior = false) {
 
@@ -277,7 +291,8 @@ function local_roomscheduler_print_intervention_tabs($current, $courseid, $shows
     foreach ($tabs as $key => $tab) {
         echo html_writer::start_tag('li', ['class' => 'nav-item']);
         if ($key === $current) {
-            echo html_writer::tag('span',
+            echo html_writer::tag(
+                'span',
                 $tab['label'],
                 ['class' => 'nav-link active', 'aria-current' => 'page']
             );
@@ -366,7 +381,8 @@ function local_roomscheduler_print_admin_tabs($current, $counselorcourseid, $can
     foreach ($tabs as $key => $tab) {
         echo html_writer::start_tag('li', ['class' => 'nav-item']);
         if ($key === $current) {
-            echo html_writer::tag('span',
+            echo html_writer::tag(
+                'span',
                 $tab['label'],
                 ['class' => 'nav-link active', 'aria-current' => 'page']
             );
@@ -512,9 +528,11 @@ function local_roomscheduler_import_parse_csv(string $filepath, array $studentby
     }
 
     while (($row = fgetcsv($handle)) !== false) {
-        if (empty(array_filter($row, function($v) {
-            return trim((string)$v) !== '';
-        }))) {
+        if (
+            empty(array_filter($row, function ($v) {
+                return trim((string)$v) !== '';
+            }))
+        ) {
             continue;
         }
         $sisid = trim((string)($row[$colfor['sisid']] ?? ''));
@@ -701,12 +719,16 @@ function local_roomscheduler_load_attendance(int $teacherid, array $studentids, 
     if (empty($studentids)) {
         return [];
     }
-    list($insql, $params) = $DB->get_in_or_equal($studentids, SQL_PARAMS_NAMED, 'st');
+    [$insql, $params] = $DB->get_in_or_equal($studentids, SQL_PARAMS_NAMED, 'st');
     $params['teacherid']      = $teacherid;
     $params['attendancedate'] = $date;
-    $rows = $DB->get_records_select('local_roomscheduler_attendance',
+    $rows = $DB->get_records_select(
+        'local_roomscheduler_attendance',
         "teacherid = :teacherid AND attendancedate = :attendancedate AND studentid $insql",
-        $params, '', 'id, studentid, attendancetype, present');
+        $params,
+        '',
+        'id, studentid, attendancetype, present'
+    );
 
     $result = [];
     foreach ($rows as $row) {
@@ -901,7 +923,7 @@ function local_roomscheduler_attendance_checkall_buttons(array $columns): string
  * @return string HTML for the whole <td>.
  */
 function local_roomscheduler_class_cell(stdClass $student): string {
-    // max-width:0 lets the cell keep its header width instead of growing to
+    // Setting max-width:0 lets the cell keep its header width instead of growing to
     // fit the course name, so the name is cropped rather than widening the table.
     $tdattrs = ['style' => 'max-width:0;'];
     $code    = (string)($student->assignment_code ?? '');
@@ -916,4 +938,3 @@ function local_roomscheduler_class_cell(stdClass $student): string {
     ]);
     return html_writer::tag('td', $inner, $tdattrs);
 }
-

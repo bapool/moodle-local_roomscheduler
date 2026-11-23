@@ -1,5 +1,4 @@
-echo html_writer::tag('th', get_string('intervention_room', 'local_roomscheduler'), ['style' => 'width:15%']);
-echo html_writer::tag('th', get_string('requested', 'local_roomscheduler'), ['style' => 'width:8%']);<?php
+<?php
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -65,10 +64,13 @@ if (!local_roomscheduler_is_in_category((int)$course->category, $hscategoryid) &
 $isadmin        = is_siteadmin();
 $managerroleid  = $DB->get_field('role', 'id', ['shortname' => 'manager']);
 $ismanager      = !empty($managerroleid) && user_has_role_assignment(
-                      $USER->id, $managerroleid, $coursecontext->id);
+    $USER->id,
+    $managerroleid,
+    $coursecontext->id
+);
 $teacherroleid  = $DB->get_field('role', 'id', ['shortname' => 'editingteacher']);
 $teacherroleid2 = $DB->get_field('role', 'id', ['shortname' => 'teacher']);
-$isteacher      = user_has_role_assignment($USER->id, $teacherroleid,  $coursecontext->id)
+$isteacher      = user_has_role_assignment($USER->id, $teacherroleid, $coursecontext->id)
                || user_has_role_assignment($USER->id, $teacherroleid2, $coursecontext->id);
 
 if (!$isadmin && !$isteacher) {
@@ -136,9 +138,9 @@ $myrequests = $DB->get_records(
     '',
     '*'
 );
-$requestedbyMe = [];
+$requestedbyme = [];
 foreach ($myrequests as $req) {
-    $requestedbyMe[$req->userid] = $req;
+    $requestedbyme[$req->userid] = $req;
 }
 
 // Load last 4 weeks of archive data for this teacher.
@@ -159,7 +161,7 @@ foreach ($archiverows as $arc) {
 }
 sort($archiveweeks); // Oldest first for display.
 
-// Build archive lookup: userid => [weekof => true]
+// Build archive lookup: userid => [weekof => true].
 $archivebystudent = [];
 foreach ($archiverows as $arc) {
     $archivebystudent[$arc->userid][$arc->weekof] = true;
@@ -177,10 +179,10 @@ foreach ($scores as $score) {
     $scorebyuser[$score->userid] = $score;
 }
 
-// --- Handle form submission ---
+// Handle form submission.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_sesskey();
-// Checkboxes are submitted as requested_USERID => 1 when checked.
+    // Checkboxes are submitted as requested_USERID => 1 when checked.
     // All userids are submitted as allstudents[] hidden fields.
     $allstudents  = optional_param_array('allstudents', [], PARAM_INT);
     $newpersistent = optional_param('persistent', 0, PARAM_INT);
@@ -199,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $DB->insert_record('local_roomscheduler_teacher_prefs', $rec);
     }
     $ispersistent = $newpersistent;
-    
+
     foreach ($allstudents as $userid) {
         $userid    = (int)$userid;
         if (!$userid) {
@@ -231,9 +233,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $DB->insert_record('local_roomscheduler_requests', $rec);
         }
     }
-    $redirecturl = new moodle_url('/local/roomscheduler/requests.php',
-        array_merge(['courseid' => $courseid],
-        $selectedgroup ? ['groupid' => $selectedgroup] : [])
+    $redirecturl = new moodle_url(
+        '/local/roomscheduler/requests.php',
+        array_merge(
+            ['courseid' => $courseid],
+            $selectedgroup ? ['groupid' => $selectedgroup] : []
+        )
     );
     redirect(
         $redirecturl,
@@ -243,7 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     );
 }
 
-// --- Render page ---
+// Render page.
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('requests_heading', 'local_roomscheduler') . ': ' . $course->fullname);
 
@@ -264,12 +269,16 @@ if (!empty($groups)) {
         'class'  => 'mb-2',
     ]);
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'courseid', 'value' => $courseid]);
-    echo html_writer::tag('label',
+    echo html_writer::tag(
+        'label',
         get_string('selectgroup', 'local_roomscheduler') . ': ',
         ['for' => 'groupid', 'class' => 'mr-2 font-weight-bold']
     );
     echo html_writer::select(
-        $groupoptions, 'groupid', $selectedgroup, false,
+        $groupoptions,
+        'groupid',
+        $selectedgroup,
+        false,
         ['id' => 'groupid', 'class' => 'form-control d-inline-block w-auto mr-2',
          'onchange' => 'this.form.submit()']
     );
@@ -294,9 +303,12 @@ echo html_writer::tag('style', '
 ');
 
 // Build form.
-$formurl = new moodle_url('/local/roomscheduler/requests.php',
-    array_merge(['courseid' => $courseid],
-    $selectedgroup ? ['groupid' => $selectedgroup] : [])
+$formurl = new moodle_url(
+    '/local/roomscheduler/requests.php',
+    array_merge(
+        ['courseid' => $courseid],
+        $selectedgroup ? ['groupid' => $selectedgroup] : []
+    )
 );
 
 echo html_writer::start_tag('form', [
@@ -315,7 +327,8 @@ $persistchecked = $ispersistent ? 'checked' : '';
 echo html_writer::start_div('mb-3 p-2 border rounded bg-light');
 echo '<input type="checkbox" name="persistent" value="1" id="persistent" '
     . $persistchecked . ' class="mr-2">';
-echo html_writer::tag('label',
+echo html_writer::tag(
+    'label',
     '<strong>Keep these requests for next week?</strong> '
     . '<span class="text-muted small">(unchecked = requests will be cleared)</span>',
     ['for' => 'persistent']
@@ -343,16 +356,17 @@ echo html_writer::start_tag('table', [
 // Header.
 echo html_writer::start_tag('thead', ['class' => 'thead-light']);
 echo html_writer::start_tag('tr');
-echo html_writer::tag('th', get_string('lastname',          'local_roomscheduler'), ['style' => 'width:20%']);
-echo html_writer::tag('th', get_string('firstname',         'local_roomscheduler'), ['style' => 'width:17%', 'class' => 'nowrap-header']);
-echo html_writer::tag('th', get_string('ela_score',         'local_roomscheduler'), ['style' => 'width:10%']);
-echo html_writer::tag('th', get_string('math_score',        'local_roomscheduler'), ['style' => 'width:10%']);
-echo html_writer::tag('th', get_string('homeroom',          'local_roomscheduler'), ['style' => 'width:13%']);
+echo html_writer::tag('th', get_string('lastname', 'local_roomscheduler'), ['style' => 'width:20%']);
+echo html_writer::tag('th', get_string('firstname', 'local_roomscheduler'), ['style' => 'width:17%', 'class' => 'nowrap-header']);
+echo html_writer::tag('th', get_string('ela_score', 'local_roomscheduler'), ['style' => 'width:10%']);
+echo html_writer::tag('th', get_string('math_score', 'local_roomscheduler'), ['style' => 'width:10%']);
+echo html_writer::tag('th', get_string('homeroom', 'local_roomscheduler'), ['style' => 'width:13%']);
 echo html_writer::tag('th', get_string('intervention_room', 'local_roomscheduler'), ['style' => 'width:15%']);
 echo html_writer::tag('th', 'Code', ['style' => 'width:6%; white-space:nowrap;']);
 echo html_writer::tag('th', get_string('requested', 'local_roomscheduler'), ['style' => 'width:8%']);
 foreach ($archiveweeks as $weekof) {
-    echo html_writer::tag('th',
+    echo html_writer::tag(
+        'th',
         userdate($weekof, '%m/%d'),
         ['style' => 'width:5%; text-align:center; font-size:0.8em;']
     );
@@ -368,15 +382,15 @@ echo html_writer::start_tag('tbody');
 
 foreach ($students as $userid => $student) {
     $uid      = (int)$userid;
-    $req      = isset($requestedbyMe[$uid]) ? $requestedbyMe[$uid] : null;
-    $recordid = $req ? (int)$req->id        : 0;
+    $req      = isset($requestedbyme[$uid]) ? $requestedbyme[$uid] : null;
+    $recordid = $req ? (int)$req->id : 0;
     $ischecked = $req ? (int)$req->requested : 0;
-    $score    = isset($scorebyuser[$uid])   ? $scorebyuser[$uid]   : null;
+    $score    = isset($scorebyuser[$uid]) ? $scorebyuser[$uid] : null;
 
-    $elaval   = $score ? (int)$score->ela_score        : 3;
-    $mathval  = $score ? (int)$score->math_score       : 3;
-    $homeroom = $score ? s($score->homeroom)           : '—';
-    $introom  = $score ? s($score->intervention_room)  : '—';
+    $elaval   = $score ? (int)$score->ela_score : 3;
+    $mathval  = $score ? (int)$score->math_score : 3;
+    $homeroom = $score ? s($score->homeroom) : '—';
+    $introom  = $score ? s($score->intervention_room) : '—';
 
     $minscore = min($elaval, $mathval);
     $rowclass = 'score-' . $minscore;
@@ -390,11 +404,12 @@ foreach ($students as $userid => $student) {
     echo html_writer::tag('td', $elaval);
     echo html_writer::tag('td', $mathval);
     echo html_writer::tag('td', $homeroom ?: '—');
-    echo html_writer::tag('td', $introom  ?: '—');
+    echo html_writer::tag('td', $introom ?: '—');
 
     // Assignment code — why the student landed in this room.
     $acode = ($score && !empty($score->assignment_code)) ? s($score->assignment_code) : '';
-    echo html_writer::tag('td',
+    echo html_writer::tag(
+        'td',
         $acode !== '' ? html_writer::span($acode, 'badge badge-secondary') : '—',
         ['style' => 'text-align:center;']
     );
@@ -409,7 +424,8 @@ foreach ($students as $userid => $student) {
     // Archive columns — last 4 weeks.
     foreach ($archiveweeks as $weekof) {
         $wasrequested = isset($archivebystudent[$uid][$weekof]);
-        echo html_writer::tag('td',
+        echo html_writer::tag(
+            'td',
             $wasrequested ? '✓' : '',
             ['style' => 'text-align:center; color:green; font-weight:bold;']
         );

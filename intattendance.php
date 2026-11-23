@@ -63,10 +63,13 @@ if (!local_roomscheduler_is_in_category((int)$course->category, $hscategoryid) &
 $isadmin        = is_siteadmin();
 $managerroleid  = $DB->get_field('role', 'id', ['shortname' => 'manager']);
 $ismanager      = !empty($managerroleid) && user_has_role_assignment(
-                      $USER->id, $managerroleid, $coursecontext->id);
+    $USER->id,
+    $managerroleid,
+    $coursecontext->id
+);
 $teacherroleid  = $DB->get_field('role', 'id', ['shortname' => 'editingteacher']);
 $teacherroleid2 = $DB->get_field('role', 'id', ['shortname' => 'teacher']);
-$isteacher      = user_has_role_assignment($USER->id, $teacherroleid,  $coursecontext->id)
+$isteacher      = user_has_role_assignment($USER->id, $teacherroleid, $coursecontext->id)
                || user_has_role_assignment($USER->id, $teacherroleid2, $coursecontext->id);
 
 if (!$isadmin && !$isteacher) {
@@ -131,7 +134,7 @@ if ($tracksattendance) {
 // Load existing attendance for this teacher/date.
 $existingattendance = local_roomscheduler_load_attendance($USER->id, array_keys($studenttypes), $datetimestamp);
 
-// --- Handle form submission ---
+// Handle form submission.
 if ($tracksattendance && $_SERVER['REQUEST_METHOD'] === 'POST') {
     require_sesskey();
 
@@ -153,7 +156,7 @@ if ($tracksattendance && $_SERVER['REQUEST_METHOD'] === 'POST') {
     );
 }
 
-// --- Render page ---
+// Render page.
 echo $OUTPUT->header();
 echo html_writer::start_div('no-print');
 echo $OUTPUT->heading(get_string('intattendance_heading', 'local_roomscheduler')
@@ -174,7 +177,8 @@ if (!$myroom) {
 $roomtypelabel = $isela ? get_string('roomtype_ela', 'local_roomscheduler')
                         : ($ismath ? get_string('roomtype_math', 'local_roomscheduler')
                                    : $myroom->interventiontype);
-echo html_writer::tag('p',
+echo html_writer::tag(
+    'p',
     'Room: <strong>' . s($myroom->roomnumber) . '</strong> &nbsp;|&nbsp; '
     . 'Type: <strong>' . s($roomtypelabel) . '</strong>',
     ['class' => 'mb-2']
@@ -194,7 +198,8 @@ echo html_writer::start_tag('form', [
     'class'  => 'mb-3 d-inline-block',
 ]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'courseid', 'value' => $courseid]);
-echo html_writer::tag('label',
+echo html_writer::tag(
+    'label',
     get_string('selectdate', 'local_roomscheduler') . ': ',
     ['class' => 'mr-2 font-weight-bold']
 );
@@ -206,7 +211,7 @@ echo html_writer::empty_tag('input', [
     'onchange' => 'this.form.submit()',
 ]);
 echo html_writer::end_tag('form');
-echo html_writer::end_div(); // .no-print
+echo html_writer::end_div(); // End of no-print block.
 
 // Inline styles.
 echo html_writer::tag('style', '
@@ -241,9 +246,12 @@ echo html_writer::tag('style', '
 ');
 
 if ($tracksattendance) {
-    echo html_writer::tag('p',
-        get_string(count($attcolumns) > 1 ? 'attendanceinstructions_iep' : 'attendanceinstructions',
-            'local_roomscheduler'),
+    echo html_writer::tag(
+        'p',
+        get_string(
+            count($attcolumns) > 1 ? 'attendanceinstructions_iep' : 'attendanceinstructions',
+            'local_roomscheduler'
+        ),
         ['class' => 'alert alert-info mb-2 no-print']
     );
 }
@@ -256,7 +264,7 @@ if ($tracksattendance) {
         'action' => $formurl->out(false),
         'id'     => 'attendanceform',
     ]);
-    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey',        'value' => sesskey()]);
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'attendancedate', 'value' => $selecteddate]);
 
     echo html_writer::start_div('mb-2 no-print');
@@ -276,17 +284,17 @@ echo html_writer::start_tag('table', [
 
 echo html_writer::start_tag('thead', ['class' => 'thead-light']);
 echo html_writer::start_tag('tr');
-echo html_writer::tag('th', get_string('lastname',          'local_roomscheduler'), ['style' => 'width:13%']);
-echo html_writer::tag('th', get_string('firstname',         'local_roomscheduler'), ['style' => 'width:13%']);
-echo html_writer::tag('th', get_string('ela_score',         'local_roomscheduler'), ['style' => 'width:5%']);
-echo html_writer::tag('th', get_string('math_score',        'local_roomscheduler'), ['style' => 'width:5%']);
-echo html_writer::tag('th', get_string('col_monwed',        'local_roomscheduler'), ['style' => 'width:8%; text-align:center;']);
-echo html_writer::tag('th', get_string('col_thurfri',       'local_roomscheduler'), ['style' => 'width:8%; text-align:center;']);
-echo html_writer::tag('th', 'Code',                                                 ['style' => 'width:5%']);
+echo html_writer::tag('th', get_string('lastname', 'local_roomscheduler'), ['style' => 'width:13%']);
+echo html_writer::tag('th', get_string('firstname', 'local_roomscheduler'), ['style' => 'width:13%']);
+echo html_writer::tag('th', get_string('ela_score', 'local_roomscheduler'), ['style' => 'width:5%']);
+echo html_writer::tag('th', get_string('math_score', 'local_roomscheduler'), ['style' => 'width:5%']);
+echo html_writer::tag('th', get_string('col_monwed', 'local_roomscheduler'), ['style' => 'width:8%; text-align:center;']);
+echo html_writer::tag('th', get_string('col_thurfri', 'local_roomscheduler'), ['style' => 'width:8%; text-align:center;']);
+echo html_writer::tag('th', 'Code', ['style' => 'width:5%']);
 if ($tracksattendance) {
     echo local_roomscheduler_attendance_header_cells($attcolumns);
 }
-echo html_writer::tag('th', get_string('col_class',         'local_roomscheduler'), ['style' => 'width:20%']);
+echo html_writer::tag('th', get_string('col_class', 'local_roomscheduler'), ['style' => 'width:20%']);
 echo html_writer::end_tag('tr');
 echo html_writer::end_tag('thead');
 
@@ -303,18 +311,23 @@ foreach ($students as $uid => $student) {
     echo html_writer::start_tag('tr', ['class' => $rowclass]);
     echo html_writer::tag('td', s($student->lastname));
     echo html_writer::tag('td', s($student->firstname));
-    echo html_writer::tag('td', $elascore,  ['style' => 'text-align:center;']);
+    echo html_writer::tag('td', $elascore, ['style' => 'text-align:center;']);
     echo html_writer::tag('td', $mathscore, ['style' => 'text-align:center;']);
-    echo html_writer::tag('td', s($student->homeroom),          ['style' => 'text-align:center;']);
+    echo html_writer::tag('td', s($student->homeroom), ['style' => 'text-align:center;']);
     echo html_writer::tag('td', s($student->intervention_room), ['style' => 'text-align:center;']);
-    echo html_writer::tag('td',
+    echo html_writer::tag(
+        'td',
         html_writer::span(s($student->assignment_code), 'badge badge-secondary'),
         ['style' => 'text-align:center;']
     );
 
     if ($tracksattendance) {
-        echo local_roomscheduler_attendance_cells($uid, $attcolumns, $studenttypes[$uid] ?? [],
-            $existingattendance);
+        echo local_roomscheduler_attendance_cells(
+            $uid,
+            $attcolumns,
+            $studenttypes[$uid] ?? [],
+            $existingattendance
+        );
     }
 
     // Class: the course whose D/F grade placed the student here (D/F codes only).
@@ -343,8 +356,8 @@ if ($tracksattendance) {
 // Code legend.
 echo html_writer::start_div('mt-3 p-3 border rounded bg-light');
 echo html_writer::tag('strong', 'Assignment Code Key: ', ['class' => 'mr-2']);
-$codes = ['E'=>'ELA Move','M'=>'Math Move','Q'=>'Requested','F'=>'F Grade',
-          'D'=>'D Grade','R'=>'Reward','S'=>'Displaced','H'=>'Homeroom'];
+$codes = ['E' => 'ELA Move', 'M' => 'Math Move', 'Q' => 'Requested', 'F' => 'F Grade',
+          'D' => 'D Grade', 'R' => 'Reward', 'S' => 'Displaced', 'H' => 'Homeroom'];
 $items = [];
 foreach ($codes as $c => $d) {
     $items[] = html_writer::tag('strong', $c) . '=' . $d;
@@ -352,7 +365,7 @@ foreach ($codes as $c => $d) {
 echo html_writer::tag('small', implode(' | ', $items), ['class' => 'text-muted']);
 echo html_writer::empty_tag('br');
 echo html_writer::tag('strong', 'Suffix: ', ['class' => 'mr-2']);
-$suffixes = ['A'=>'Attendance denied reward','B'=>'Behavior denied reward'];
+$suffixes = ['A' => 'Attendance denied reward', 'B' => 'Behavior denied reward'];
 $sitems = [];
 foreach ($suffixes as $c => $d) {
     $sitems[] = html_writer::tag('strong', $c) . '=' . $d;
@@ -361,7 +374,9 @@ echo html_writer::tag('small', implode(' | ', $sitems), ['class' => 'text-muted'
 echo html_writer::end_div();
 
 echo html_writer::start_div('mt-3 no-print');
-echo html_writer::tag('button', 'Print',
+echo html_writer::tag(
+    'button',
+    'Print',
     ['class' => 'btn btn-secondary', 'onclick' => 'window.print(); return false;']
 );
 echo html_writer::end_div();

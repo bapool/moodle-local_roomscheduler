@@ -62,7 +62,10 @@ $isadmin          = is_siteadmin();
 $counselorcontext = context_course::instance($counselorcourseid);
 $managerroleid    = $DB->get_field('role', 'id', ['shortname' => 'manager']);
 $ismanager        = !empty($managerroleid) && user_has_role_assignment(
-                        $USER->id, $managerroleid, $counselorcontext->id);
+    $USER->id,
+    $managerroleid,
+    $counselorcontext->id
+);
 $canmanage        = ($isadmin || $ismanager);
 
 if (!$canmanage) {
@@ -99,30 +102,38 @@ foreach ($studentrows as $s) {
 
 $errors = [];
 
-// --- Cancel: forget the preview ---
+// Cancel: forget the preview.
 if ($action === 'cancel') {
     require_sesskey();
     unset($SESSION->local_roomscheduler_import);
     redirect($importurl);
 }
 
-// --- Confirm: write the previewed rows ---
+// Confirm: write the previewed rows.
 if ($action === 'confirm') {
     require_sesskey();
     $pending = $SESSION->local_roomscheduler_import ?? null;
     unset($SESSION->local_roomscheduler_import);
 
     if (empty($pending) || empty($pending['rows'])) {
-        redirect($importurl, get_string('importexpired', 'local_roomscheduler'), null,
-            \core\output\notification::NOTIFY_WARNING);
+        redirect(
+            $importurl,
+            get_string('importexpired', 'local_roomscheduler'),
+            null,
+            \core\output\notification::NOTIFY_WARNING
+        );
     }
 
     $updated = local_roomscheduler_import_apply($pending['rows'], $counselorcourseid);
-    redirect($importurl, get_string('importsuccess', 'local_roomscheduler', $updated), null,
-        \core\output\notification::NOTIFY_SUCCESS);
+    redirect(
+        $importurl,
+        get_string('importsuccess', 'local_roomscheduler', $updated),
+        null,
+        \core\output\notification::NOTIFY_SUCCESS
+    );
 }
 
-// --- Preview: read the uploaded file, show the changes, save nothing ---
+// Preview: read the uploaded file, show the changes, save nothing.
 $preview = null;
 if ($action === 'preview') {
     require_sesskey();
@@ -141,7 +152,7 @@ if ($action === 'preview') {
     }
 }
 
-// --- Render ---
+// Render.
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('importmaintitle', 'local_roomscheduler'));
 local_roomscheduler_print_admin_tabs('import', $counselorcourseid, $canmanage);
@@ -167,17 +178,21 @@ if ($preview !== null) {
 
     // SIS IDs in the file that are not students in the counselor course.
     if (!empty($preview['notfound'])) {
-        echo html_writer::tag('h5',
+        echo html_writer::tag(
+            'h5',
             get_string('importnotfound', 'local_roomscheduler') . ' (' . count($preview['notfound']) . ')',
-            ['class' => 'mt-3 text-danger']);
+            ['class' => 'mt-3 text-danger']
+        );
         echo html_writer::tag('p', s(implode(', ', $preview['notfound'])));
     }
 
     // Values that were not valid and will be skipped.
     if (!empty($preview['invalid'])) {
-        echo html_writer::tag('h5',
+        echo html_writer::tag(
+            'h5',
             get_string('importinvalid', 'local_roomscheduler') . ' (' . count($preview['invalid']) . ')',
-            ['class' => 'mt-3 text-danger']);
+            ['class' => 'mt-3 text-danger']
+        );
         echo html_writer::start_tag('ul');
         foreach ($preview['invalid'] as $bad) {
             echo html_writer::tag('li', s($bad['sisid'] . ' — ' . $bad['field'] . ': "' . $bad['value'] . '"'));
@@ -186,9 +201,11 @@ if ($preview !== null) {
     }
 
     // Changes, one row per changed field.
-    echo html_writer::tag('h5',
+    echo html_writer::tag(
+        'h5',
         get_string('importchanged', 'local_roomscheduler') . ' (' . count($changes) . ')',
-        ['class' => 'mt-3']);
+        ['class' => 'mt-3']
+    );
 
     if (empty($changes)) {
         echo $OUTPUT->notification(get_string('importnochanges', 'local_roomscheduler'), 'info');
@@ -256,9 +273,8 @@ if ($preview !== null) {
     ]);
     echo html_writer::end_tag('form');
     echo html_writer::end_div();
-
 } else {
-    // --- Upload form ---
+    // Upload form.
     echo html_writer::div(get_string('importinstructions', 'local_roomscheduler'), 'alert alert-info');
 
     echo html_writer::start_tag('form', [
@@ -270,8 +286,11 @@ if ($preview !== null) {
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'preview']);
 
     echo html_writer::start_div('form-group');
-    echo html_writer::tag('label', get_string('importfile', 'local_roomscheduler'),
-        ['for' => 'csvfile', 'class' => 'font-weight-bold']);
+    echo html_writer::tag(
+        'label',
+        get_string('importfile', 'local_roomscheduler'),
+        ['for' => 'csvfile', 'class' => 'font-weight-bold']
+    );
     echo html_writer::empty_tag('input', [
         'type'   => 'file',
         'name'   => 'csvfile',

@@ -54,7 +54,7 @@ if (empty($teachercourseid) || empty($counselorcourseid)) {
     die;
 }
 
-// --- Determine access level ---
+// Determine access level.
 // Site admin always gets manage.
 $isadmin = is_siteadmin();
 
@@ -85,14 +85,14 @@ if (!$canmanage && !$isteacher) {
 // Intervention type options.
 $typeoptions = [
     'ELA1P' => get_string('type_ELA1P', 'local_roomscheduler'),
-    'ELA1'  => get_string('type_ELA1',  'local_roomscheduler'),
-    'ELA2'  => get_string('type_ELA2',  'local_roomscheduler'),
+    'ELA1'  => get_string('type_ELA1', 'local_roomscheduler'),
+    'ELA2'  => get_string('type_ELA2', 'local_roomscheduler'),
     'MTH1P' => get_string('type_MTH1P', 'local_roomscheduler'),
-    'MTH1'  => get_string('type_MTH1',  'local_roomscheduler'),
-    'MTH2'  => get_string('type_MTH2',  'local_roomscheduler'),
-    'GEN'   => get_string('type_GEN',   'local_roomscheduler'),
-    'IEP'   => get_string('type_IEP',   'local_roomscheduler'),
-    'NA'    => get_string('type_NA',    'local_roomscheduler'),
+    'MTH1'  => get_string('type_MTH1', 'local_roomscheduler'),
+    'MTH2'  => get_string('type_MTH2', 'local_roomscheduler'),
+    'GEN'   => get_string('type_GEN', 'local_roomscheduler'),
+    'IEP'   => get_string('type_IEP', 'local_roomscheduler'),
+    'NA'    => get_string('type_NA', 'local_roomscheduler'),
 ];
 
 // Grade preference options.
@@ -118,7 +118,7 @@ $enrolledteachers = $DB->get_records_sql($sql, ['courseid' => $teachercourseid])
 // Build valid teacher ID list as integers.
 $validteacherids = array_map('intval', array_keys($enrolledteachers));
 
-// --- Handle Reset Student Data (admins only) ---
+// Handle Reset Student Data (admins only).
 if ($isadmin && $_SERVER['REQUEST_METHOD'] === 'POST' && optional_param('resetstudentdata', 0, PARAM_INT)) {
     require_sesskey();
     $DB->delete_records('local_roomscheduler_students');
@@ -134,16 +134,16 @@ if ($isadmin && $_SERVER['REQUEST_METHOD'] === 'POST' && optional_param('resetst
     );
 }
 
-// --- Handle form submission (managers only) ---
+// Handle form submission (managers only).
 if ($canmanage && $_SERVER['REQUEST_METHOD'] === 'POST') {
     require_sesskey();
 
-    $teacherids        = optional_param_array('teacherid',        [], PARAM_INT);
-    $roomnumbers       = optional_param_array('roomnumber',       [], PARAM_TEXT);
-    $maxstudentsarr    = optional_param_array('maxstudents',      [], PARAM_INT);
+    $teacherids        = optional_param_array('teacherid', [], PARAM_INT);
+    $roomnumbers       = optional_param_array('roomnumber', [], PARAM_TEXT);
+    $maxstudentsarr    = optional_param_array('maxstudents', [], PARAM_INT);
     $interventiontypes = optional_param_array('interventiontype', [], PARAM_ALPHANUMEXT);
-    $gradelevels       = optional_param_array('gradelevel',       [], PARAM_ALPHANUMEXT);
-    $recordids         = optional_param_array('recordid',         [], PARAM_INT);
+    $gradelevels       = optional_param_array('gradelevel', [], PARAM_ALPHANUMEXT);
+    $recordids         = optional_param_array('recordid', [], PARAM_INT);
 
     $now   = time();
     $count = count($teacherids);
@@ -223,7 +223,7 @@ foreach ($existingrecords as $rec) {
     $byteacher[$rec->teacherid] = $rec;
 }
 
-// --- Render page ---
+// Render page.
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('pluginname_heading', 'local_roomscheduler'));
 
@@ -269,7 +269,7 @@ echo html_writer::tag('style', '
 ');
 
 if ($canmanage) {
-    // --- MANAGER VIEW: inline editable table ---
+    // MANAGER VIEW: inline editable table.
     $formurl = new moodle_url('/local/roomscheduler/index.php');
 
     echo html_writer::start_tag('form', [
@@ -282,7 +282,8 @@ if ($canmanage) {
         'value' => sesskey(),
     ]);
 
-    echo html_writer::tag('p',
+    echo html_writer::tag(
+        'p',
         'Enter a room number to save a row. Green rows have saved data.',
         ['class' => 'text-muted mb-2']
     );
@@ -295,14 +296,14 @@ if ($canmanage) {
     // Header.
     echo html_writer::start_tag('thead', ['class' => 'thead-light']);
     echo html_writer::start_tag('tr');
-    echo html_writer::tag('th', get_string('teacher',          'local_roomscheduler'), ['style' => 'width:22%']);
-    echo html_writer::tag('th', 'Room',                                                ['style' => 'width:5%']);
+    echo html_writer::tag('th', get_string('teacher', 'local_roomscheduler'), ['style' => 'width:22%']);
+    echo html_writer::tag('th', 'Room', ['style' => 'width:5%']);
     echo html_writer::tag('th', get_string('interventiontype', 'local_roomscheduler'), ['style' => 'width:15%']);
-    echo html_writer::tag('th', get_string('gradelevel',        'local_roomscheduler'), ['style' => 'width:10%']);
-    echo html_writer::tag('th', 'Max #',                                            ['style' => 'width:8%']);
-    echo html_writer::tag('th', 'Mon-Wed',                                             ['style' => 'width:8%']);
-    echo html_writer::tag('th', 'Thur/Fri',                                            ['style' => 'width:8%']);
-    echo html_writer::tag('th', 'Reward',                                              ['style' => 'width:6%; text-align:center;']);
+    echo html_writer::tag('th', get_string('gradelevel', 'local_roomscheduler'), ['style' => 'width:10%']);
+    echo html_writer::tag('th', 'Max #', ['style' => 'width:8%']);
+    echo html_writer::tag('th', 'Mon-Wed', ['style' => 'width:8%']);
+    echo html_writer::tag('th', 'Thur/Fri', ['style' => 'width:8%']);
+    echo html_writer::tag('th', 'Reward', ['style' => 'width:6%; text-align:center;']);
     echo html_writer::end_tag('tr');
     echo html_writer::end_tag('thead');
 
@@ -349,11 +350,11 @@ if ($canmanage) {
         $i++;
         $tid      = (int)$teacherid;
         $rec      = isset($byteacher[$tid]) ? $byteacher[$tid] : null;
-        $recordid = $rec ? (int)$rec->id            : 0;
-        $roomval  = $rec ? s($rec->roomnumber)       : '';
-        $maxval   = $rec ? (int)$rec->maxstudents    : 0;
-        $typeval  = $rec ? $rec->interventiontype    : 'NA';
-        $gradeval = $rec ? $rec->gradelevel          : 'Open';
+        $recordid = $rec ? (int)$rec->id : 0;
+        $roomval  = $rec ? s($rec->roomnumber) : '';
+        $maxval   = $rec ? (int)$rec->maxstudents : 0;
+        $typeval  = $rec ? $rec->interventiontype : 'NA';
+        $gradeval = $rec ? $rec->gradelevel : 'Open';
         $hasdata  = ($rec && !empty(trim($rec->roomnumber)));
         $isreward = $rec ? (int)$rec->isrewardroom : 0;
 
@@ -371,7 +372,8 @@ if ($canmanage) {
             . '</td>';
 
         // Room number.
-        echo html_writer::tag('td',
+        echo html_writer::tag(
+            'td',
             html_writer::empty_tag('input', [
                 'type'        => 'text',
                 'name'        => 'roomnumber[]',
@@ -383,7 +385,8 @@ if ($canmanage) {
         );
 
         // Intervention type.
-        echo html_writer::tag('td',
+        echo html_writer::tag(
+            'td',
             html_writer::select(
                 $typeoptions,
                 'interventiontype[]',
@@ -394,7 +397,8 @@ if ($canmanage) {
         );
 
         // Grade preference.
-        echo html_writer::tag('td',
+        echo html_writer::tag(
+            'td',
             html_writer::select(
                 $gradeoptions,
                 'gradelevel[]',
@@ -405,7 +409,8 @@ if ($canmanage) {
         );
 
         // Max students.
-        echo html_writer::tag('td',
+        echo html_writer::tag(
+            'td',
             html_writer::empty_tag('input', [
                 'type'  => 'number',
                 'name'  => 'maxstudents[]',
@@ -421,7 +426,7 @@ if ($canmanage) {
         $capacity = $rec ? (int)$rec->maxstudents : 0;
 
         // Color-code an assigned count against the room's capacity.
-        $countcolorfor = function($assigned, $capacity) {
+        $countcolorfor = function ($assigned, $capacity) {
             if ($capacity <= 0) {
                 return '';
             }
@@ -482,7 +487,8 @@ if ($canmanage) {
         $selfurl = new moodle_url('/local/roomscheduler/index.php');
         echo html_writer::start_div('alert alert-warning mt-4');
         echo html_writer::tag('h5', '⚠️ New School Year Reminder', ['class' => 'alert-heading']);
-        echo html_writer::tag('p',
+        echo html_writer::tag(
+            'p',
             html_writer::tag('strong', 'WARNING: This should only be done ONCE per school year. '
             . 'All student data will be permanently deleted. '
             . 'Rooms, teacher preferences, and plugin settings will be preserved.')
@@ -491,9 +497,12 @@ if ($canmanage) {
             'method'   => 'post',
             'action'   => $selfurl->out(false),
             'class'    => 'd-inline-block',
-            'onsubmit' => 'return confirm("⚠️ WARNING: This will permanently delete ALL student scores, room assignments, requests, attendance records, and behavior denials.\n\nThis should only be done ONCE at the start of each school year.\n\nAre you absolutely sure?");',
+            'onsubmit' => 'return confirm("⚠️ WARNING: This will permanently delete ALL student scores, ' .
+                'room assignments, requests, attendance records, and behavior denials.\n\n' .
+                'This should only be done ONCE at the start of each school year.\n\n' .
+                'Are you absolutely sure?");',
         ]);
-        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey',          'value' => sesskey()]);
+        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
         echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'resetstudentdata', 'value' => '1']);
         echo html_writer::empty_tag('input', [
             'type'  => 'submit',
@@ -503,9 +512,8 @@ if ($canmanage) {
         echo html_writer::end_tag('form');
         echo html_writer::end_div();
     }
-
 } else {
-    // --- TEACHER READ-ONLY VIEW ---
+    // TEACHER READ-ONLY VIEW.
     echo html_writer::start_tag('div', ['class' => 'table-responsive']);
     echo html_writer::start_tag('table', [
         'class' => 'table table-bordered table-hover table-sm roomscheduler-table',
@@ -514,10 +522,10 @@ if ($canmanage) {
     echo html_writer::start_tag('thead', ['class' => 'thead-light']);
     echo html_writer::start_tag('tr');
     echo html_writer::tag('th', '#');
-    echo html_writer::tag('th', get_string('teacher',          'local_roomscheduler'));
-    echo html_writer::tag('th', get_string('roomnumber',       'local_roomscheduler'));
+    echo html_writer::tag('th', get_string('teacher', 'local_roomscheduler'));
+    echo html_writer::tag('th', get_string('roomnumber', 'local_roomscheduler'));
     echo html_writer::tag('th', get_string('interventiontype', 'local_roomscheduler'));
-    echo html_writer::tag('th', get_string('maxstudents',      'local_roomscheduler'));
+    echo html_writer::tag('th', get_string('maxstudents', 'local_roomscheduler'));
     echo html_writer::end_tag('tr');
     echo html_writer::end_tag('thead');
 
@@ -547,7 +555,8 @@ if ($canmanage) {
 
     if ($i === 0) {
         echo html_writer::start_tag('tr');
-        echo html_writer::tag('td',
+        echo html_writer::tag(
+            'td',
             get_string('norecords', 'local_roomscheduler'),
             ['colspan' => 5, 'class' => 'text-center text-muted']
         );

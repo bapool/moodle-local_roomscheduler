@@ -52,7 +52,7 @@ $logfile = $logdir . '/scheduler-' . date('Y-m-d-His') . '.log';
 $logfp   = fopen($logfile, 'w');
 
 // Helper to write to both stdout and log file.
-$log = function($msg) use ($logfp) {
+$log = function ($msg) use ($logfp) {
     mtrace($msg);
     fwrite($logfp, $msg . "\n");
 };

@@ -32,6 +32,6 @@ $tasks = [
         'hour'      => '8',
         'day'       => '*',
         'month'     => '*',
-        'dayofweek' => '1',   // Monday.
+        'dayofweek' => '1', // Monday.
     ],
 ];

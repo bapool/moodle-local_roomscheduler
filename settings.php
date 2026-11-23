@@ -25,7 +25,6 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
-
     $settings = new admin_settingpage(
         'local_roomscheduler',
         get_string('pluginname', 'local_roomscheduler')
@@ -34,7 +33,7 @@ if ($hassiteconfig) {
     $ADMIN->add('localplugins', $settings);
 
     // Teacher source course ID.
-    // *** NTLS DEFAULT: Course ID of the "HS Teachers" course. Change if course ID differs on target server. ***
+    // NTLS DEFAULT: Course ID of the "HS Teachers" course. Change if course ID differs on target server.
     $settings->add(new admin_setting_configtext(
         'local_roomscheduler/teachercourseid',
         get_string('teachercourseid', 'local_roomscheduler'),
@@ -44,7 +43,7 @@ if ($hassiteconfig) {
     ));
 
     // Counselor course ID.
-    // *** NTLS DEFAULT: Course ID of the "HS Counseling" course. Change if course ID differs on target server. ***
+    // NTLS DEFAULT: Course ID of the "HS Counseling" course. Change if course ID differs on target server.
     $settings->add(new admin_setting_configtext(
         'local_roomscheduler/counselorcourseid',
         get_string('counselorcourseid', 'local_roomscheduler'),
@@ -54,7 +53,7 @@ if ($hassiteconfig) {
     ));
 
     // HS category ID.
-    // *** NTLS DEFAULT: Course category ID for the high school. Change if category ID differs on target server. ***
+    // NTLS DEFAULT: Course category ID for the high school. Change if category ID differs on target server.
     $settings->add(new admin_setting_configtext(
         'local_roomscheduler/hscategoryid',
         get_string('hscategoryid', 'local_roomscheduler'),
@@ -64,7 +63,7 @@ if ($hassiteconfig) {
     ));
 
     // D/F grade threshold.
-    // *** NTLS DEFAULT: Grades below this % are considered D or F. ***
+    // NTLS DEFAULT: Grades below this % are considered D or F.
     $settings->add(new admin_setting_configtext(
         'local_roomscheduler/dfthreshold',
         get_string('dfthreshold', 'local_roomscheduler'),
@@ -74,7 +73,7 @@ if ($hassiteconfig) {
     ));
 
     // A/B grade threshold.
-    // *** NTLS DEFAULT: Grades at or above this % are considered A or B. ***
+    // NTLS DEFAULT: Grades at or above this % are considered A or B.
     $settings->add(new admin_setting_configtext(
         'local_roomscheduler/abthreshold',
         get_string('abthreshold', 'local_roomscheduler'),
@@ -84,7 +83,7 @@ if ($hassiteconfig) {
     ));
 
     // Attendance threshold for reward room.
-    // *** NTLS DEFAULT: Students below this attendance % are denied the reward room. ***
+    // NTLS DEFAULT: Students below this attendance % are denied the reward room.
     $settings->add(new admin_setting_configtext(
         'local_roomscheduler/attendancethreshold',
         get_string('attendancethreshold', 'local_roomscheduler'),
@@ -94,7 +93,7 @@ if ($hassiteconfig) {
     ));
 
     // Minutes per intervention session.
-    // *** NTLS DEFAULT: Instruction credit minutes per attendance record. ***
+    // NTLS DEFAULT: Instruction credit minutes per attendance record.
     $settings->add(new admin_setting_configtext(
         'local_roomscheduler/minutespersession',
         get_string('minutespersession', 'local_roomscheduler'),

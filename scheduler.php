@@ -53,15 +53,13 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Main scheduling function.
  */
 function local_roomscheduler_run_scheduler() {
     global $DB;
 
-    // --- Load settings ---
+    // Load settings.
     $counselorcourseid = (int)   get_config('local_roomscheduler', 'counselorcourseid');
     $hscategoryid      = (int)   get_config('local_roomscheduler', 'hscategoryid');
     $dfthreshold          = (float) get_config('local_roomscheduler', 'dfthreshold');
@@ -91,12 +89,15 @@ function local_roomscheduler_run_scheduler() {
         'skipped'       => 0,
         'total'         => 0,
     ];
-    
-    // --- Step 0a: Archive current requests then clear non-persistent ones ---
+
+    // Step 0a: Archive current requests then clear non-persistent ones.
     $now     = time();
     // Calculate Monday midnight of current week.
-    $weekday = (int)date('N'); // 1=Mon, 7=Sun.
-    $monday  = mktime(0, 0, 0,
+    $weekday = (int)date('N'); // ISO day number, Monday is 1 and Sunday is 7.
+    $monday  = mktime(
+        0,
+        0,
+        0,
         (int)date('n'),
         (int)date('j') - $weekday + 1,
         (int)date('Y')
@@ -146,8 +147,11 @@ function local_roomscheduler_run_scheduler() {
     );
 
     if (!empty($persistentteachers)) {
-        list($insql, $inparams) = $DB->get_in_or_equal(
-            $persistentteachers, SQL_PARAMS_NAMED, 'pt', false
+        [$insql, $inparams] = $DB->get_in_or_equal(
+            $persistentteachers,
+            SQL_PARAMS_NAMED,
+            'pt',
+            false
         );
         // Delete requests from non-persistent teachers only.
         // get_in_or_equal with false returns NOT IN clause.
@@ -161,15 +165,27 @@ function local_roomscheduler_run_scheduler() {
         $DB->delete_records('local_roomscheduler_requests');
     }
 
-    // --- Wipe all assignments ---
-    $DB->set_field('local_roomscheduler_students', 'intervention_room', '',
-        ['courseid' => $counselorcourseid]);
-    $DB->set_field('local_roomscheduler_students', 'assignment_code', '',
-        ['courseid' => $counselorcourseid]);
-    $DB->set_field('local_roomscheduler_students', 'dfcourseid', 0,
-        ['courseid' => $counselorcourseid]);
+    // Wipe all assignments.
+    $DB->set_field(
+        'local_roomscheduler_students',
+        'intervention_room',
+        '',
+        ['courseid' => $counselorcourseid]
+    );
+    $DB->set_field(
+        'local_roomscheduler_students',
+        'assignment_code',
+        '',
+        ['courseid' => $counselorcourseid]
+    );
+    $DB->set_field(
+        'local_roomscheduler_students',
+        'dfcourseid',
+        0,
+        ['courseid' => $counselorcourseid]
+    );
 
-    // --- Load rooms ---
+    // Load rooms.
     $roomrecords = $DB->get_records('local_roomscheduler_rooms', null, '', '*');
 
     // If reward-room scheduling is turned off, treat every room as a normal
@@ -187,14 +203,14 @@ function local_roomscheduler_run_scheduler() {
 
     // Reward rooms are dedicated to reward students only — excluded from the
     // normal intervention-type pools so steps 1-3 never place students there.
-    $rewardRooms = [];
+    $rewardrooms = [];
     foreach ($roomrecords as $room) {
         if (!empty($room->isrewardroom)) {
-            $rewardRooms[] = $room;
+            $rewardrooms[] = $room;
         }
     }
 
-    $roomsByType = [
+    $roomsbytype = [
         'ELA1P' => [], 'ELA1' => [], 'ELA2' => [],
         'MTH1P' => [], 'MTH1' => [], 'MTH2' => [],
         'GEN'   => [], 'IEP'  => [], 'NA'   => [],
@@ -203,42 +219,42 @@ function local_roomscheduler_run_scheduler() {
         if (!empty($room->isrewardroom)) {
             continue;
         }
-        if (isset($roomsByType[$room->interventiontype])) {
-            $roomsByType[$room->interventiontype][] = $room;
+        if (isset($roomsbytype[$room->interventiontype])) {
+            $roomsbytype[$room->interventiontype][] = $room;
         }
     }
 
     // ELA 1+ / Math 1+ rooms only take cross-subject swap students (and
     // requests from that + teacher). teacherid => true.
-    $plusRooms = [];
-    foreach (array_merge($roomsByType['ELA1P'], $roomsByType['MTH1P']) as $room) {
-        $plusRooms[$room->teacherid] = true;
+    $plusrooms = [];
+    foreach (array_merge($roomsbytype['ELA1P'], $roomsbytype['MTH1P']) as $room) {
+        $plusrooms[$room->teacherid] = true;
     }
 
     // Each room's type as set on Room Settings, before this run turns any
     // ELA 1 / Math 1 room into an extra + room or into a General room.
-    $origType = [];
+    $origtype = [];
     foreach ($roomrecords as $room) {
-        $origType[$room->teacherid] = $room->interventiontype;
+        $origtype[$room->teacherid] = $room->interventiontype;
     }
 
-    // roomAssigned: teacherid => [userid => userid]
-    $roomAssigned = [];
+    // Map of $roomassigned: teacherid => [userid => userid].
+    $roomassigned = [];
     foreach ($roomrecords as $room) {
-        $roomAssigned[$room->teacherid] = [];
+        $roomassigned[$room->teacherid] = [];
     }
 
-    $roomByTeacher = [];
+    $roombyteacher = [];
     foreach ($roomrecords as $room) {
-        $roomByTeacher[$room->teacherid] = $room;
+        $roombyteacher[$room->teacherid] = $room;
     }
 
-    $roomByNumber = [];
+    $roombynumber = [];
     foreach ($roomrecords as $room) {
-        $roomByNumber[$room->roomnumber] = $room;
+        $roombynumber[$room->roomnumber] = $room;
     }
 
-    // --- Load students ---
+    // Load students.
     $studentroleid    = $DB->get_field('role', 'id', ['shortname' => 'student']);
     $counselorcontext = context_course::instance($counselorcourseid);
 
@@ -261,11 +277,12 @@ function local_roomscheduler_run_scheduler() {
     $studentrecs = $DB->get_records(
         'local_roomscheduler_students',
         ['courseid' => $counselorcourseid],
-        '', '*'
+        '',
+        '*'
     );
-    $stuByUser = [];
+    $stubyuser = [];
     foreach ($studentrecs as $s) {
-        $stuByUser[$s->userid] = $s;
+        $stubyuser[$s->userid] = $s;
     }
 
     // A student with no Mon-Wed (Intervention) room must never be given a
@@ -274,23 +291,23 @@ function local_roomscheduler_run_scheduler() {
     // displacement) can place them. All Thur/Fri rooms were wiped above, so
     // these students are left blank.
     foreach ($allusers as $uid => $u) {
-        if (!isset($stuByUser[$uid]) || trim((string)$stuByUser[$uid]->homeroom) === '') {
+        if (!isset($stubyuser[$uid]) || trim((string)$stubyuser[$uid]->homeroom) === '') {
             unset($allusers[$uid]);
             $results['skipped']++;
         }
     }
 
-    // --- Lock All Rooms override: everyone stays in their Mon-Wed room for
-    // Thur/Fri, coded H, and none of the other steps run at all. ---
+    // Lock All Rooms override: everyone stays in their Mon-Wed room for
+    // Thur/Fri, coded H, and none of the other steps run at all.
     $lockall = get_config('local_roomscheduler', 'lockall');
     if ($lockall) {
         $now = time();
         foreach ($allusers as $u) {
             $uid = $u->id;
-            if (isset($stuByUser[$uid]) && !empty($stuByUser[$uid]->homeroom)) {
+            if (isset($stubyuser[$uid]) && !empty($stubyuser[$uid]->homeroom)) {
                 $rec                    = new stdClass();
-                $rec->id                = $stuByUser[$uid]->id;
-                $rec->intervention_room = $stuByUser[$uid]->homeroom;
+                $rec->id                = $stubyuser[$uid]->id;
+                $rec->intervention_room = $stubyuser[$uid]->homeroom;
                 $rec->assignment_code   = 'H';
                 $rec->timemodified      = $now;
                 $DB->update_record('local_roomscheduler_students', $rec);
@@ -307,7 +324,7 @@ function local_roomscheduler_run_scheduler() {
         return $results;
     }
 
-    // --- Load HS courses and grades ---
+    // Load HS courses and grades.
     $hscourses   = local_roomscheduler_get_hs_courses($hscategoryid);
     $hscourseids = array_keys($hscourses);
 
@@ -318,9 +335,9 @@ function local_roomscheduler_run_scheduler() {
     // Step 1: Get all context IDs for HS courses.
     // Step 2: Get all teacher role assignments in those contexts.
     // Uses ra.id as first column to avoid get_records_sql key collisions.
-    $teacherCourses = [];
+    $teachercourses = [];
     if (!empty($hscourseids)) {
-        list($insql, $inparams) = $DB->get_in_or_equal($hscourseids, SQL_PARAMS_QM);
+        [$insql, $inparams] = $DB->get_in_or_equal($hscourseids, SQL_PARAMS_QM);
         $ctxsql = "SELECT ctx.id, ctx.instanceid as courseid
                      FROM {context} ctx
                      JOIN {course} c ON c.id = ctx.instanceid
@@ -339,7 +356,7 @@ function local_roomscheduler_run_scheduler() {
             }
             $contextids = array_keys($contexts);
 
-            list($ctxinsql, $ctxinparams) = $DB->get_in_or_equal($contextids, SQL_PARAMS_QM);
+            [$ctxinsql, $ctxinparams] = $DB->get_in_or_equal($contextids, SQL_PARAMS_QM);
             $rasql = "SELECT ra.id, ra.userid, ra.contextid
                         FROM {role_assignments} ra
                        WHERE ra.contextid $ctxinsql
@@ -352,25 +369,25 @@ function local_roomscheduler_run_scheduler() {
             foreach ($rarows as $ra) {
                 $courseid = $ctxbyid[$ra->contextid] ?? null;
                 if ($courseid) {
-                    $teacherCourses[$ra->userid][$courseid] = $courseid;
+                    $teachercourses[$ra->userid][$courseid] = $courseid;
                 }
             }
         }
     }
 
-    $studentGrades = local_roomscheduler_get_student_grades($hscourseids, $allusers);
+    $studentgrades = local_roomscheduler_get_student_grades($hscourseids, $allusers);
 
     // Load behavior denial list (userids with denied=1).
-    $behaviorDenied = [];
-    $behaviorRows   = $DB->get_records_select(
+    $behaviordenied = [];
+    $behaviorrows   = $DB->get_records_select(
         'local_roomscheduler_behavior',
         'denied = 1',
         [],
         '',
         'id, userid'
     );
-    foreach ($behaviorRows as $b) {
-        $behaviorDenied[$b->userid] = true;
+    foreach ($behaviorrows as $b) {
+        $behaviordenied[$b->userid] = true;
     }
 
     // Load absence data keyed by studentid (matches u.idnumber).
@@ -387,11 +404,11 @@ function local_roomscheduler_run_scheduler() {
             continue;
         }
 
-        $absrow   = $absencedata[$sisid]  ?? null;
-        $tardyrow = $tardydata[$sisid]    ?? null;
+        $absrow   = $absencedata[$sisid] ?? null;
+        $tardyrow = $tardydata[$sisid] ?? null;
 
-        $pct        = $absrow  ? (float)$absrow->percentage  : 100.0;
-        $daysabsent = $absrow  ? (float)$absrow->daysabsent  : 0.0;
+        $pct        = $absrow ? (float)$absrow->percentage : 100.0;
+        $daysabsent = $absrow ? (float)$absrow->daysabsent : 0.0;
         $daystardy  = $tardyrow ? (float)$tardyrow->daystardy : 0.0;
 
         // Calculate total school days from absence data.
@@ -415,70 +432,79 @@ function local_roomscheduler_run_scheduler() {
         $adjustedattendance[$user->id] = round($adjustedpct, 2);
     }
 
-    $studentCourses = [];
+    $studentcourses = [];
     if (!empty($hscourseids) && !empty($allusers)) {
         $uids = array_keys($allusers);
-        list($insql, $inparams) = $DB->get_in_or_equal($hscourseids, SQL_PARAMS_NAMED, 'sc');
-        list($usql,  $uparams)  = $DB->get_in_or_equal($uids, SQL_PARAMS_NAMED, 'su');
+        [$insql, $inparams] = $DB->get_in_or_equal($hscourseids, SQL_PARAMS_NAMED, 'sc');
+        [$usql, $uparams]  = $DB->get_in_or_equal($uids, SQL_PARAMS_NAMED, 'su');
         $sql = "SELECT DISTINCT ue.userid, e.courseid
                   FROM {user_enrolments} ue
                   JOIN {enrol} e ON e.id = ue.enrolid
                  WHERE e.courseid $insql AND ue.userid $usql";
         $scrows = $DB->get_records_sql($sql, array_merge($inparams, $uparams));
         foreach ($scrows as $sc) {
-            $studentCourses[$sc->userid][$sc->courseid] = $sc->courseid;
+            $studentcourses[$sc->userid][$sc->courseid] = $sc->courseid;
         }
     }
 
-    $requestRows = $DB->get_records_select(
-        'local_roomscheduler_requests', 'requested = 1', [], 'timecreated ASC', '*'
+    $requestrows = $DB->get_records_select(
+        'local_roomscheduler_requests',
+        'requested = 1',
+        [],
+        'timecreated ASC',
+        '*'
     );
-    $requestsByStudent = [];
-    foreach ($requestRows as $req) {
-        $requestsByStudent[$req->userid][$req->teacherid] = $req;
+    $requestsbystudent = [];
+    foreach ($requestrows as $req) {
+        $requestsbystudent[$req->userid][$req->teacherid] = $req;
     }
 
-    // --- assigned: userid => ['room' => roomnumber, 'code' => code, 'priority' => int] ---
-    // Priority: 1=highest (E/M), 2=Q, 3=F, 4=D, 5=R, 6=H
+    // Each $assigned entry is keyed by userid and holds the room number, code and priority.
+    // Priority: 1=highest (E/M), 2=Q, 3=F, 4=D, 5=R, 6=H.
     $assigned = [];
 
-    // =========================================================
-    // HELPER FUNCTIONS
-    // =========================================================
+    // HELPER FUNCTIONS.
 
-    $getRoomCapacity = function($teacherid) use ($roomByTeacher) {
-        return isset($roomByTeacher[$teacherid]) ? (int)$roomByTeacher[$teacherid]->maxstudents : 0;
+    $getroomcapacity = function ($teacherid) use ($roombyteacher) {
+        return isset($roombyteacher[$teacherid]) ? (int)$roombyteacher[$teacherid]->maxstudents : 0;
     };
 
-    $getRoomUsage = function($teacherid) use (&$roomAssigned) {
-        return count($roomAssigned[$teacherid] ?? []);
+    $getroomusage = function ($teacherid) use (&$roomassigned) {
+        return count($roomassigned[$teacherid] ?? []);
     };
 
-    $assignStudent = function($userid, $room, $code, $priority)
-        use (&$assigned, &$roomAssigned) {
+    $assignstudent = function ($userid, $room, $code, $priority) use (&$assigned, &$roomassigned) {
         $assigned[$userid] = [
             'room'     => $room->roomnumber,
             'code'     => $code,
             'priority' => $priority,
         ];
-        $roomAssigned[$room->teacherid][$userid] = $userid;
+        $roomassigned[$room->teacherid][$userid] = $userid;
     };
 
     // Reward rooms: distribute students evenly across all checked reward rooms,
     // ignoring capacity — a reward room may end up over its normal maxstudents.
-    $rewardAssignedCount = [];
-    foreach ($rewardRooms as $rr) {
-        $rewardAssignedCount[$rr->teacherid] = 0;
+    $rewardassignedcount = [];
+    foreach ($rewardrooms as $rr) {
+        $rewardassignedcount[$rr->teacherid] = 0;
     }
 
-    $assignToRewardRoom = function($userid, $code, $priority)
-        use (&$assigned, &$roomAssigned, &$rewardAssignedCount, $rewardRooms) {
-        if (empty($rewardRooms)) {
+    $assigntorewardroom = function (
+        $userid,
+        $code,
+        $priority
+    ) use (
+        &$assigned,
+        &$roomassigned,
+        &$rewardassignedcount,
+        $rewardrooms
+    ) {
+        if (empty($rewardrooms)) {
             return false;
         }
-        $rooms = $rewardRooms;
-        usort($rooms, function($a, $b) use (&$rewardAssignedCount) {
-            return $rewardAssignedCount[$a->teacherid] <=> $rewardAssignedCount[$b->teacherid];
+        $rooms = $rewardrooms;
+        usort($rooms, function ($a, $b) use (&$rewardassignedcount) {
+            return $rewardassignedcount[$a->teacherid] <=> $rewardassignedcount[$b->teacherid];
         });
         $room = $rooms[0];
         $assigned[$userid] = [
@@ -486,31 +512,40 @@ function local_roomscheduler_run_scheduler() {
             'code'     => $code,
             'priority' => $priority,
         ];
-        $roomAssigned[$room->teacherid][$userid] = $userid;
-        $rewardAssignedCount[$room->teacherid]++;
+        $roomassigned[$room->teacherid][$userid] = $userid;
+        $rewardassignedcount[$room->teacherid]++;
         return true;
     };
 
-    $assignToHomeroom = function($userid, $code, $priority)
-        use (&$assigned, &$roomAssigned, $stuByUser, $roomByNumber, &$plusRooms) {
-        if (!isset($stuByUser[$userid])) {
+    $assigntohomeroom = function (
+        $userid,
+        $code,
+        $priority
+    ) use (
+        &$assigned,
+        &$roomassigned,
+        $stubyuser,
+        $roombynumber,
+        &$plusrooms
+    ) {
+        if (!isset($stubyuser[$userid])) {
             return false;
         }
-        $homeroom = $stuByUser[$userid]->homeroom;
+        $homeroom = $stubyuser[$userid]->homeroom;
         if (empty($homeroom)) {
             return false;
         }
-        if (isset($roomByNumber[$homeroom]) && !empty($roomByNumber[$homeroom]->isrewardroom)) {
+        if (isset($roombynumber[$homeroom]) && !empty($roombynumber[$homeroom]->isrewardroom)) {
             return false;
         }
         // ELA 1+ / Math 1+ rooms keep only their swap students on Thur/Fri.
-        if (isset($roomByNumber[$homeroom]) && isset($plusRooms[$roomByNumber[$homeroom]->teacherid])) {
+        if (isset($roombynumber[$homeroom]) && isset($plusrooms[$roombynumber[$homeroom]->teacherid])) {
             return false;
         }
         // A Max # of 0 means the teacher takes no Thur/Fri students. The
         // capacity pass skips IEP and Not Assigned rooms, so the student
         // must not be placed here. Step 7 finds them a room with space.
-        if (isset($roomByNumber[$homeroom]) && (int)$roomByNumber[$homeroom]->maxstudents <= 0) {
+        if (isset($roombynumber[$homeroom]) && (int)$roombynumber[$homeroom]->maxstudents <= 0) {
             return false;
         }
         $assigned[$userid] = [
@@ -519,36 +554,36 @@ function local_roomscheduler_run_scheduler() {
             'priority' => $priority,
         ];
         // Track in roomAssigned if room exists.
-        if (isset($roomByNumber[$homeroom])) {
-            $teacherid = $roomByNumber[$homeroom]->teacherid;
-            $roomAssigned[$teacherid][$userid] = $userid;
+        if (isset($roombynumber[$homeroom])) {
+            $teacherid = $roombynumber[$homeroom]->teacherid;
+            $roomassigned[$teacherid][$userid] = $userid;
         }
         return true;
     };
 
-    $unassignStudent = function($userid) use (&$assigned, &$roomAssigned, $roomByNumber) {
+    $unassignstudent = function ($userid) use (&$assigned, &$roomassigned, $roombynumber) {
         if (!isset($assigned[$userid])) {
             return;
         }
         $roomnumber = $assigned[$userid]['room'];
-        if (isset($roomByNumber[$roomnumber])) {
-            $teacherid = $roomByNumber[$roomnumber]->teacherid;
-            unset($roomAssigned[$teacherid][$userid]);
+        if (isset($roombynumber[$roomnumber])) {
+            $teacherid = $roombynumber[$roomnumber]->teacherid;
+            unset($roomassigned[$teacherid][$userid]);
         }
         unset($assigned[$userid]);
     };
 
     // Get available room of a type — fills rooms evenly within type.
-    $getAvailableRoom = function($type) use (&$roomsByType, &$roomAssigned, $roomByTeacher) {
-        $rooms = $roomsByType[$type] ?? [];
+    $getavailableroom = function ($type) use (&$roomsbytype, &$roomassigned, $roombyteacher) {
+        $rooms = $roomsbytype[$type] ?? [];
         // Sort by least full first (even distribution within same type).
-        usort($rooms, function($a, $b) use ($roomAssigned) {
-            return count($roomAssigned[$a->teacherid] ?? [])
-                 - count($roomAssigned[$b->teacherid] ?? []);
+        usort($rooms, function ($a, $b) use ($roomassigned) {
+            return count($roomassigned[$a->teacherid] ?? [])
+                 - count($roomassigned[$b->teacherid] ?? []);
         });
         foreach ($rooms as $room) {
             $cap = (int)$room->maxstudents;
-            if ($cap > 0 && count($roomAssigned[$room->teacherid] ?? []) < $cap) {
+            if ($cap > 0 && count($roomassigned[$room->teacherid] ?? []) < $cap) {
                 return $room;
             }
         }
@@ -556,10 +591,10 @@ function local_roomscheduler_run_scheduler() {
     };
 
     // Check if ALL rooms of a type are full.
-    $allRoomsFull = function($type) use (&$roomsByType, &$roomAssigned) {
-        foreach ($roomsByType[$type] ?? [] as $room) {
+    $allroomsfull = function ($type) use (&$roomsbytype, &$roomassigned) {
+        foreach ($roomsbytype[$type] ?? [] as $room) {
             $cap   = (int)$room->maxstudents;
-            $usage = count($roomAssigned[$room->teacherid] ?? []);
+            $usage = count($roomassigned[$room->teacherid] ?? []);
             if ($cap > 0 && $usage < $cap) {
                 return false;
             }
@@ -567,30 +602,48 @@ function local_roomscheduler_run_scheduler() {
         return true;
     };
 
-    $getHomeroomType = function($userid) use ($stuByUser, $roomByNumber) {
-        if (!isset($stuByUser[$userid])) return null;
-        $hr = $stuByUser[$userid]->homeroom;
-        if (empty($hr)) return null;
-        return isset($roomByNumber[$hr]) ? $roomByNumber[$hr]->interventiontype : null;
+    $gethomeroomtype = function ($userid) use ($stubyuser, $roombynumber) {
+        if (!isset($stubyuser[$userid])) {
+            return null;
+        }
+        $hr = $stubyuser[$userid]->homeroom;
+        if (empty($hr)) {
+            return null;
+        }
+        return isset($roombynumber[$hr]) ? $roombynumber[$hr]->interventiontype : null;
     };
 
-    $hasDFGrade = function($userid) use ($studentGrades, $dfthreshold) {
-        if (!isset($studentGrades[$userid])) return false;
-        foreach ($studentGrades[$userid] as $pct) {
-            if ($pct < $dfthreshold) return true;
+    $hasdfgrade = function ($userid) use ($studentgrades, $dfthreshold) {
+        if (!isset($studentgrades[$userid])) {
+            return false;
+        }
+        foreach ($studentgrades[$userid] as $pct) {
+            if ($pct < $dfthreshold) {
+                return true;
+            }
         }
         return false;
     };
 
-    $hasAllABGrades = function($userid) use ($studentGrades, $abthreshold,
-                                              $adjustedattendance, $attendancethreshold) {
-        if (!isset($studentGrades[$userid]) || empty($studentGrades[$userid])) return false;
-        foreach ($studentGrades[$userid] as $pct) {
-            if ($pct < $abthreshold) return false;
+    $hasallabgrades = function ($userid) use (
+        $studentgrades,
+        $abthreshold,
+        $adjustedattendance,
+        $attendancethreshold
+) {
+        if (!isset($studentgrades[$userid]) || empty($studentgrades[$userid])) {
+            return false;
+        }
+        foreach ($studentgrades[$userid] as $pct) {
+            if ($pct < $abthreshold) {
+                return false;
+            }
         }
         // Check attendance threshold.
-        $attPct = $adjustedattendance[$userid] ?? 100.0;
-        if ($attPct < $attendancethreshold) return false;
+        $attpct = $adjustedattendance[$userid] ?? 100.0;
+        if ($attpct < $attendancethreshold) {
+            return false;
+        }
         return true;
     };
 
@@ -601,28 +654,40 @@ function local_roomscheduler_run_scheduler() {
     // a tie between rooms that are equally full. This is what actually
     // keeps displaced students spread out instead of all piling into
     // whichever room happens to share a course with the most students.
-    $findDisplacementRoom = function($userid, $excludeRoomNumber)
-        use (&$roomsByType, &$roomAssigned, $studentCourses,
-             $teacherCourses, $studentGrades, $roomByTeacher) {
+    $finddisplacementroom = function (
+        $userid,
+        $excluderoomnumber
+    ) use (
+        &$roomsbytype,
+        &$roomassigned,
+        $studentcourses,
+        $teachercourses,
+        $studentgrades,
+        $roombyteacher
+) {
 
         $alltypes   = ['ELA1', 'ELA2', 'MTH1', 'MTH2', 'GEN'];
         $candidates = [];
 
         foreach ($alltypes as $type) {
-            foreach (($roomsByType[$type] ?? []) as $room) {
-                if ($room->roomnumber === $excludeRoomNumber) continue;
+            foreach (($roomsbytype[$type] ?? []) as $room) {
+                if ($room->roomnumber === $excluderoomnumber) {
+                    continue;
+                }
                 $cap   = (int)$room->maxstudents;
-                $usage = count($roomAssigned[$room->teacherid] ?? []);
-                if ($cap <= 0 || $usage >= $cap) continue;
+                $usage = count($roomassigned[$room->teacherid] ?? []);
+                if ($cap <= 0 || $usage >= $cap) {
+                    continue;
+                }
 
                 $shared = array_intersect(
-                    $studentCourses[$userid] ?? [],
-                    $teacherCourses[$room->teacherid] ?? []
+                    $studentcourses[$userid] ?? [],
+                    $teachercourses[$room->teacherid] ?? []
                 );
                 $hasshared = !empty($shared);
                 $bestpct   = 100;
                 foreach ($shared as $cid) {
-                    $pct = $studentGrades[$userid][$cid] ?? 100;
+                    $pct = $studentgrades[$userid][$cid] ?? 100;
                     if ($pct < $bestpct) {
                         $bestpct = $pct;
                     }
@@ -641,7 +706,7 @@ function local_roomscheduler_run_scheduler() {
             return null;
         }
 
-        usort($candidates, function($a, $b) {
+        usort($candidates, function ($a, $b) {
             if ($a['usage'] !== $b['usage']) {
                 return $a['usage'] <=> $b['usage'];
             }
@@ -655,14 +720,24 @@ function local_roomscheduler_run_scheduler() {
     };
 
     // Force assign to a room that may be full — displace an H-priority student.
-    $forceAssign = function($userid, $room, $code, $priority)
-        use (&$assigned, &$roomAssigned, &$results,
-             $assignStudent, $unassignStudent, $findDisplacementRoom) {
+    $forceassign = function (
+        $userid,
+        $room,
+        $code,
+        $priority
+    ) use (
+        &$assigned,
+        &$roomassigned,
+        &$results,
+        $assignstudent,
+        $unassignstudent,
+        $finddisplacementroom
+) {
 
         // Find lowest priority occupant (H=6 is most displaceable).
         $displaceuid = null;
         $highestpri  = 0;
-        foreach ($roomAssigned[$room->teacherid] as $ouid) {
+        foreach ($roomassigned[$room->teacherid] as $ouid) {
             $opri = $assigned[$ouid]['priority'] ?? 0;
             if ($opri > $highestpri && $opri >= 6) {
                 $highestpri  = $opri;
@@ -670,15 +745,19 @@ function local_roomscheduler_run_scheduler() {
             }
         }
 
-        if (!$displaceuid) return false;
+        if (!$displaceuid) {
+            return false;
+        }
 
-        $disproom = $findDisplacementRoom($displaceuid, $room->roomnumber);
-        if (!$disproom) return false;
+        $disproom = $finddisplacementroom($displaceuid, $room->roomnumber);
+        if (!$disproom) {
+            return false;
+        }
 
-        $unassignStudent($displaceuid);
-        $assignStudent($displaceuid, $disproom, 'S', 7);
+        $unassignstudent($displaceuid);
+        $assignstudent($displaceuid, $disproom, 'S', 7);
         $results['displaced']++;
-        $assignStudent($userid, $room, $code, $priority);
+        $assignstudent($userid, $room, $code, $priority);
         return true;
     };
 
@@ -686,9 +765,19 @@ function local_roomscheduler_run_scheduler() {
     // occupants (priority=1) to a DIFFERENT room of the same type, so a D/F
     // student can be placed with their own actual teacher. The moved student
     // still ends up with an ELA1 or MTH1 teacher — just not this one.
-    $swapToKeepOwnTeacher = function($userid, $room, $code, $priority)
-        use (&$assigned, &$roomAssigned, &$results, &$roomsByType,
-             $assignStudent, $unassignStudent) {
+    $swaptokeepownteacher = function (
+        $userid,
+        $room,
+        $code,
+        $priority
+    ) use (
+        &$assigned,
+        &$roomassigned,
+        &$results,
+        &$roomsbytype,
+        $assignstudent,
+        $unassignstudent
+) {
 
         $type = $room->interventiontype;
         if (!in_array($type, ['ELA1', 'MTH1'])) {
@@ -697,7 +786,7 @@ function local_roomscheduler_run_scheduler() {
 
         // Find an E/M priority (cross-subject swap) occupant in this room.
         $swapuid = null;
-        foreach ($roomAssigned[$room->teacherid] as $ouid) {
+        foreach ($roomassigned[$room->teacherid] as $ouid) {
             if (($assigned[$ouid]['priority'] ?? 0) === 1) {
                 $swapuid = $ouid;
                 break;
@@ -709,10 +798,12 @@ function local_roomscheduler_run_scheduler() {
 
         // Find another room of the SAME type with space.
         $newroom = null;
-        foreach (($roomsByType[$type] ?? []) as $r) {
-            if ($r->roomnumber === $room->roomnumber) continue;
+        foreach (($roomsbytype[$type] ?? []) as $r) {
+            if ($r->roomnumber === $room->roomnumber) {
+                continue;
+            }
             $cap = (int)$r->maxstudents;
-            if ($cap > 0 && count($roomAssigned[$r->teacherid] ?? []) < $cap) {
+            if ($cap > 0 && count($roomassigned[$r->teacherid] ?? []) < $cap) {
                 $newroom = $r;
                 break;
             }
@@ -724,115 +815,129 @@ function local_roomscheduler_run_scheduler() {
         // Move the E/M student to the other same-type room, keeping their code/priority.
         $swapcode     = $assigned[$swapuid]['code'];
         $swappriority = $assigned[$swapuid]['priority'];
-        $unassignStudent($swapuid);
-        $assignStudent($swapuid, $newroom, $swapcode, $swappriority);
+        $unassignstudent($swapuid);
+        $assignstudent($swapuid, $newroom, $swapcode, $swappriority);
         $results['step3swap']++;
 
         // Now place the D/F student in the freed slot with their own teacher.
-        $assignStudent($userid, $room, $code, $priority);
+        $assignstudent($userid, $room, $code, $priority);
         return true;
     };
 
-    // =========================================================
-    // STEP 0: Lock IEP students into their assigned IEP room (if enabled)
-    // =========================================================
+    // STEP 0: Lock IEP students into their assigned IEP room (if enabled).
     $lockiep = get_config('local_roomscheduler', 'lockiep');
     if ($lockiep) {
         foreach ($allusers as $user) {
             $uid = $user->id;
-            if (isset($assigned[$uid])) continue;
-            if (!isset($stuByUser[$uid])) continue;
+            if (isset($assigned[$uid])) {
+                continue;
+            }
+            if (!isset($stubyuser[$uid])) {
+                continue;
+            }
 
-            $homeroom = $stuByUser[$uid]->homeroom;
-            if (empty($homeroom) || !isset($roomByNumber[$homeroom])) continue;
+            $homeroom = $stubyuser[$uid]->homeroom;
+            if (empty($homeroom) || !isset($roombynumber[$homeroom])) {
+                continue;
+            }
 
-            $room = $roomByNumber[$homeroom];
-            if ($room->interventiontype !== 'IEP') continue;
+            $room = $roombynumber[$homeroom];
+            if ($room->interventiontype !== 'IEP') {
+                continue;
+            }
 
             // Priority 0 — lower than anything else, so this student can
             // never be picked up as a displacement candidate later.
-            $assignStudent($uid, $room, 'H', 0);
+            $assignstudent($uid, $room, 'H', 0);
             $results['step0iep']++;
         }
     }
 
-    // =========================================================
     // STEP 1a: Count the swap students. If there are more than the ELA 1+
     // (or Math 1+) rooms can hold, turn the ELA 1 (or Math 1) teacher with
     // the fewest Mon-Wed students into another + room for this run, and
     // repeat until there is room for everyone or no ELA 1 teacher is left.
     // Nothing happens if no + room is set on Room Settings.
-    // =========================================================
-    $swapNeed    = ['ELA' => 0, 'MTH' => 0];
-    $monwedCount = [];
+    $swapneed    = ['ELA' => 0, 'MTH' => 0];
+    $monwedcount = [];
     foreach ($allusers as $user) {
         $uid = $user->id;
-        if (!isset($stuByUser[$uid])) continue;
-        $hr = $stuByUser[$uid]->homeroom;
-        if (isset($roomByNumber[$hr])) {
-            $tid = $roomByNumber[$hr]->teacherid;
-            $monwedCount[$tid] = ($monwedCount[$tid] ?? 0) + 1;
+        if (!isset($stubyuser[$uid])) {
+            continue;
         }
-        if (isset($assigned[$uid])) continue;
-        $hrtype = $getHomeroomType($uid);
-        if (in_array($hrtype, ['ELA1P', 'ELA1', 'ELA2']) &&
-                in_array((int)$stuByUser[$uid]->math_score, [1, 2], true)) {
-            $swapNeed['MTH']++;
-        } else if (in_array($hrtype, ['MTH1P', 'MTH1', 'MTH2']) &&
-                in_array((int)$stuByUser[$uid]->ela_score, [1, 2], true)) {
-            $swapNeed['ELA']++;
+        $hr = $stubyuser[$uid]->homeroom;
+        if (isset($roombynumber[$hr])) {
+            $tid = $roombynumber[$hr]->teacherid;
+            $monwedcount[$tid] = ($monwedcount[$tid] ?? 0) + 1;
+        }
+        if (isset($assigned[$uid])) {
+            continue;
+        }
+        $hrtype = $gethomeroomtype($uid);
+        if (
+            in_array($hrtype, ['ELA1P', 'ELA1', 'ELA2']) &&
+                in_array((int)$stubyuser[$uid]->math_score, [1, 2], true)
+        ) {
+            $swapneed['MTH']++;
+        } else if (
+            in_array($hrtype, ['MTH1P', 'MTH1', 'MTH2']) &&
+                in_array((int)$stubyuser[$uid]->ela_score, [1, 2], true)
+        ) {
+            $swapneed['ELA']++;
         }
     }
 
     foreach (['ELA' => ['ELA1P', 'ELA1'], 'MTH' => ['MTH1P', 'MTH1']] as $subject => $types) {
-        list($plustype, $basetype) = $types;
-        if (empty($roomsByType[$plustype])) {
+        [$plustype, $basetype] = $types;
+        if (empty($roomsbytype[$plustype])) {
             continue;
         }
         $capacity = 0;
-        foreach ($roomsByType[$plustype] as $r) {
+        foreach ($roomsbytype[$plustype] as $r) {
             $capacity += max(0, (int)$r->maxstudents);
         }
         $spare = [];
-        foreach ($roomsByType[$basetype] as $r) {
+        foreach ($roomsbytype[$basetype] as $r) {
             if ((int)$r->maxstudents > 0) {
                 $spare[] = $r;
             }
         }
-        usort($spare, function($a, $b) use ($monwedCount) {
-            return ($monwedCount[$a->teacherid] ?? 0) <=> ($monwedCount[$b->teacherid] ?? 0);
+        usort($spare, function ($a, $b) use ($monwedcount) {
+            return ($monwedcount[$a->teacherid] ?? 0) <=> ($monwedcount[$b->teacherid] ?? 0);
         });
-        while ($swapNeed[$subject] > $capacity && !empty($spare)) {
+        while ($swapneed[$subject] > $capacity && !empty($spare)) {
             $newplus = array_shift($spare);
             $keep    = [];
-            foreach ($roomsByType[$basetype] as $r) {
+            foreach ($roomsbytype[$basetype] as $r) {
                 if ($r->teacherid != $newplus->teacherid) {
                     $keep[] = $r;
                 }
             }
-            $roomsByType[$basetype]        = $keep;
+            $roomsbytype[$basetype]        = $keep;
             $newplus->interventiontype     = $plustype; // This run only.
-            $roomsByType[$plustype][]      = $newplus;
-            $plusRooms[$newplus->teacherid] = true;
+            $roomsbytype[$plustype][]      = $newplus;
+            $plusrooms[$newplus->teacherid] = true;
             $capacity += (int)$newplus->maxstudents;
             $results['plusadded']++;
         }
     }
 
-    // =========================================================
     // STEP 1: Cross-subject swaps (state mandate — highest priority=1)
     // getAvailableRoom() always picks the least-full room of a type, so the
     // swap students are split evenly across the + rooms.
-    // =========================================================
 
     foreach ([1, 2] as $scorepriority) {
         foreach ($allusers as $user) {
             $uid = $user->id;
-            if (isset($assigned[$uid])) continue;
-            if (!isset($stuByUser[$uid])) continue;
+            if (isset($assigned[$uid])) {
+                continue;
+            }
+            if (!isset($stubyuser[$uid])) {
+                continue;
+            }
 
-            $stu       = $stuByUser[$uid];
-            $hrtype    = $getHomeroomType($uid);
+            $stu       = $stubyuser[$uid];
+            $hrtype    = $gethomeroomtype($uid);
             $elascore  = (int)$stu->ela_score;
             $mathscore = (int)$stu->math_score;
 
@@ -840,28 +945,34 @@ function local_roomscheduler_run_scheduler() {
             // Fill Math 1+ up to its Max # first, then MTH1 completely
             // before using MTH2.
             if (in_array($hrtype, ['ELA1P', 'ELA1', 'ELA2']) && $mathscore === $scorepriority) {
-                $room = $getAvailableRoom('MTH1P');
+                $room = $getavailableroom('MTH1P');
                 if (!$room) {
-                    if (!$allRoomsFull('MTH1')) {
-                        $room = $getAvailableRoom('MTH1');
+                    if (!$allroomsfull('MTH1')) {
+                        $room = $getavailableroom('MTH1');
                     } else {
-                        $room = $getAvailableRoom('MTH2');
+                        $room = $getavailableroom('MTH2');
                     }
                 }
                 if ($room) {
-                    $assignStudent($uid, $room, 'M', 1);
+                    $assignstudent($uid, $room, 'M', 1);
                     $results['step1']++;
-                    if (isset($plusRooms[$room->teacherid])) {
+                    if (isset($plusrooms[$room->teacherid])) {
                         $results['step1plus']++;
                     }
                 } else {
                     // All MTH rooms full — force into MTH1 first, then MTH2.
                     $fullroom = null;
-                    foreach (($roomsByType['MTH1'] ?? []) as $r) { $fullroom = $r; break; }
-                    if (!$fullroom) {
-                        foreach (($roomsByType['MTH2'] ?? []) as $r) { $fullroom = $r; break; }
+                    foreach (($roomsbytype['MTH1'] ?? []) as $r) {
+                        $fullroom = $r;
+                        break;
                     }
-                    if ($fullroom && $forceAssign($uid, $fullroom, 'M', 1)) {
+                    if (!$fullroom) {
+                        foreach (($roomsbytype['MTH2'] ?? []) as $r) {
+                            $fullroom = $r;
+                            break;
+                        }
+                    }
+                    if ($fullroom && $forceassign($uid, $fullroom, 'M', 1)) {
                         $results['step1']++;
                     }
                 }
@@ -870,30 +981,38 @@ function local_roomscheduler_run_scheduler() {
             // MTH homeroom + needs ELA.
             // Fill ELA 1+ up to its Max # first, then ELA1 completely
             // before using ELA2.
-            if (!isset($assigned[$uid]) &&
-                in_array($hrtype, ['MTH1P', 'MTH1', 'MTH2']) && $elascore === $scorepriority) {
-                $room = $getAvailableRoom('ELA1P');
+            if (
+                !isset($assigned[$uid]) &&
+                in_array($hrtype, ['MTH1P', 'MTH1', 'MTH2']) && $elascore === $scorepriority
+            ) {
+                $room = $getavailableroom('ELA1P');
                 if (!$room) {
-                    if (!$allRoomsFull('ELA1')) {
-                        $room = $getAvailableRoom('ELA1');
+                    if (!$allroomsfull('ELA1')) {
+                        $room = $getavailableroom('ELA1');
                     } else {
-                        $room = $getAvailableRoom('ELA2');
+                        $room = $getavailableroom('ELA2');
                     }
                 }
                 if ($room) {
-                    $assignStudent($uid, $room, 'E', 1);
+                    $assignstudent($uid, $room, 'E', 1);
                     $results['step1']++;
-                    if (isset($plusRooms[$room->teacherid])) {
+                    if (isset($plusrooms[$room->teacherid])) {
                         $results['step1plus']++;
                     }
                 } else {
                     // All ELA rooms full — force into ELA1 first, then ELA2.
                     $fullroom = null;
-                    foreach (($roomsByType['ELA1'] ?? []) as $r) { $fullroom = $r; break; }
-                    if (!$fullroom) {
-                        foreach (($roomsByType['ELA2'] ?? []) as $r) { $fullroom = $r; break; }
+                    foreach (($roomsbytype['ELA1'] ?? []) as $r) {
+                        $fullroom = $r;
+                        break;
                     }
-                    if ($fullroom && $forceAssign($uid, $fullroom, 'E', 1)) {
+                    if (!$fullroom) {
+                        foreach (($roomsbytype['ELA2'] ?? []) as $r) {
+                            $fullroom = $r;
+                            break;
+                        }
+                    }
+                    if ($fullroom && $forceassign($uid, $fullroom, 'E', 1)) {
                         $results['step1']++;
                     }
                 }
@@ -901,17 +1020,15 @@ function local_roomscheduler_run_scheduler() {
         }
     }
 
-    // =========================================================
     // STEP 1b: ELA/Math rooms that got no swap students this run are
     // treated as General rooms for every later step (D/F, displacement and
     // leveling). This only changes the in-memory copy for this run — the
     // Room Settings page is not changed.
-    // =========================================================
     foreach (['ELA1', 'ELA2', 'MTH1', 'MTH2'] as $type) {
         $keep = [];
-        foreach ($roomsByType[$type] as $room) {
+        foreach ($roomsbytype[$type] as $room) {
             $hasswap = false;
-            foreach ($roomAssigned[$room->teacherid] ?? [] as $ouid) {
+            foreach ($roomassigned[$room->teacherid] ?? [] as $ouid) {
                 if (in_array($assigned[$ouid]['code'] ?? '', ['E', 'M'], true)) {
                     $hasswap = true;
                     break;
@@ -921,31 +1038,33 @@ function local_roomscheduler_run_scheduler() {
                 $keep[] = $room;
             } else {
                 $room->interventiontype = 'GEN';
-                $roomsByType['GEN'][]   = $room;
+                $roomsbytype['GEN'][]   = $room;
                 $results['subjecttogen']++;
             }
         }
-        $roomsByType[$type] = $keep;
+        $roomsbytype[$type] = $keep;
     }
 
-    // =========================================================
-    // STEP 2: Teacher requests (priority=2)
-    // =========================================================
+    // STEP 2: Teacher requests (priority=2).
 
     foreach ($allusers as $user) {
         $uid = $user->id;
-        if (isset($assigned[$uid])) continue;
-        if (!isset($requestsByStudent[$uid])) continue;
+        if (isset($assigned[$uid])) {
+            continue;
+        }
+        if (!isset($requestsbystudent[$uid])) {
+            continue;
+        }
 
-        $requests    = $requestsByStudent[$uid];
-        $hasDf       = $hasDFGrade($uid);
+        $requests    = $requestsbystudent[$uid];
+        $hasdf       = $hasdfgrade($uid);
         $bestteacher = null;
 
-        if ($hasDf) {
+        if ($hasdf) {
             $lowestpct = PHP_INT_MAX;
             foreach ($requests as $teacherid => $req) {
-                foreach ($teacherCourses[$teacherid] ?? [] as $cid) {
-                    $pct = $studentGrades[$uid][$cid] ?? null;
+                foreach ($teachercourses[$teacherid] ?? [] as $cid) {
+                    $pct = $studentgrades[$uid][$cid] ?? null;
                     if ($pct !== null && $pct < $lowestpct) {
                         $lowestpct   = $pct;
                         $bestteacher = $teacherid;
@@ -962,38 +1081,42 @@ function local_roomscheduler_run_scheduler() {
             }
         }
 
-        if ($bestteacher && isset($roomByTeacher[$bestteacher])) {
-            $room = $roomByTeacher[$bestteacher];
-            if (!empty($room->isrewardroom)) continue;
-            if (in_array($room->interventiontype, ['IEP', 'NA'])) continue;
+        if ($bestteacher && isset($roombyteacher[$bestteacher])) {
+            $room = $roombyteacher[$bestteacher];
+            if (!empty($room->isrewardroom)) {
+                continue;
+            }
+            if (in_array($room->interventiontype, ['IEP', 'NA'])) {
+                continue;
+            }
             $cap   = (int)$room->maxstudents;
-            $usage = count($roomAssigned[$room->teacherid] ?? []);
-            if (isset($plusRooms[$room->teacherid])) {
+            $usage = count($roomassigned[$room->teacherid] ?? []);
+            if (isset($plusrooms[$room->teacherid])) {
                 // The ELA 1+ / Math 1+ teacher asked for this student, so place
                 // them even past Max #. No one is bumped. A Max # of 0 means
                 // the teacher is out, so the request is skipped.
                 if ($cap > 0) {
-                    $assignStudent($uid, $room, 'Q', 2);
+                    $assignstudent($uid, $room, 'Q', 2);
                     $results['step2']++;
                 }
             } else if ($cap > 0 && $usage < $cap) {
-                $assignStudent($uid, $room, 'Q', 2);
+                $assignstudent($uid, $room, 'Q', 2);
                 $results['step2']++;
-            } else if ($forceAssign($uid, $room, 'Q', 2)) {
+            } else if ($forceassign($uid, $room, 'Q', 2)) {
                 $results['step2']++;
             }
         }
     }
 
-    // =========================================================
-    // STEP 3: D/F grade assignments (priority=3 for F, 4 for D)
-    // =========================================================
+    // STEP 3: D/F grade assignments (priority=3 for F, 4 for D).
 
     $dfassignments = [];
     foreach ($allusers as $user) {
         $uid = $user->id;
-        if (isset($assigned[$uid])) continue;
-        foreach ($studentGrades[$uid] ?? [] as $courseid => $pct) {
+        if (isset($assigned[$uid])) {
+            continue;
+        }
+        foreach ($studentgrades[$uid] ?? [] as $courseid => $pct) {
             if ($pct < $dfthreshold) {
                 $dfassignments[] = ['userid' => $uid, 'courseid' => $courseid, 'pct' => $pct];
             }
@@ -1004,30 +1127,46 @@ function local_roomscheduler_run_scheduler() {
     // A + teacher never gets D/F students. Send the student to the least-full
     // ELA 1 (or Math 1) teacher that is not a + room, then ELA 2 (or Math 2),
     // bumping an H student if every one of them is full.
-    $placeDFWithOtherTeacher = function($userid, $plusroom, $code, $priority)
-        use (&$roomAssigned, &$plusRooms, $roomrecords, $origType,
-             $assignStudent, $forceAssign) {
+    $placedfwithotherteacher = function (
+        $userid,
+        $plusroom,
+        $code,
+        $priority
+    ) use (
+        &$roomassigned,
+        &$plusrooms,
+        $roomrecords,
+        $origtype,
+        $assignstudent,
+        $forceassign
+) {
         $basetypes = ($plusroom->interventiontype === 'ELA1P') ? ['ELA1', 'ELA2'] : ['MTH1', 'MTH2'];
         foreach ($basetypes as $basetype) {
             $rooms = [];
             foreach ($roomrecords as $r) {
-                if (($origType[$r->teacherid] ?? '') !== $basetype) continue;
-                if (isset($plusRooms[$r->teacherid])) continue;
-                if (!empty($r->isrewardroom) || (int)$r->maxstudents <= 0) continue;
+                if (($origtype[$r->teacherid] ?? '') !== $basetype) {
+                    continue;
+                }
+                if (isset($plusrooms[$r->teacherid])) {
+                    continue;
+                }
+                if (!empty($r->isrewardroom) || (int)$r->maxstudents <= 0) {
+                    continue;
+                }
                 $rooms[] = $r;
             }
-            usort($rooms, function($a, $b) use (&$roomAssigned) {
-                return count($roomAssigned[$a->teacherid] ?? [])
-                     <=> count($roomAssigned[$b->teacherid] ?? []);
+            usort($rooms, function ($a, $b) use (&$roomassigned) {
+                return count($roomassigned[$a->teacherid] ?? [])
+                     <=> count($roomassigned[$b->teacherid] ?? []);
             });
             foreach ($rooms as $r) {
-                if (count($roomAssigned[$r->teacherid] ?? []) < (int)$r->maxstudents) {
-                    $assignStudent($userid, $r, $code, $priority);
+                if (count($roomassigned[$r->teacherid] ?? []) < (int)$r->maxstudents) {
+                    $assignstudent($userid, $r, $code, $priority);
                     return true;
                 }
             }
             foreach ($rooms as $r) {
-                if ($forceAssign($userid, $r, $code, $priority)) {
+                if ($forceassign($userid, $r, $code, $priority)) {
                     return true;
                 }
             }
@@ -1038,18 +1177,26 @@ function local_roomscheduler_run_scheduler() {
     $step3done = [];
     foreach ($dfassignments as $dfa) {
         $uid = $dfa['userid'];
-        if (isset($assigned[$uid]) || isset($step3done[$uid])) continue;
+        if (isset($assigned[$uid]) || isset($step3done[$uid])) {
+            continue;
+        }
 
         $code     = ($dfa['pct'] < 60) ? 'F' : 'D';
         $priority = ($dfa['pct'] < 60) ? 3 : 4;
 
-        foreach ($teacherCourses as $teacherid => $courses) {
-            if (!isset($courses[$dfa['courseid']])) continue;
-            if (!isset($roomByTeacher[$teacherid])) continue;
-            $room = $roomByTeacher[$teacherid];
-            if (!empty($room->isrewardroom)) continue;
-            if (isset($plusRooms[$room->teacherid])) {
-                if ($placeDFWithOtherTeacher($uid, $room, $code, $priority)) {
+        foreach ($teachercourses as $teacherid => $courses) {
+            if (!isset($courses[$dfa['courseid']])) {
+                continue;
+            }
+            if (!isset($roombyteacher[$teacherid])) {
+                continue;
+            }
+            $room = $roombyteacher[$teacherid];
+            if (!empty($room->isrewardroom)) {
+                continue;
+            }
+            if (isset($plusrooms[$room->teacherid])) {
+                if ($placedfwithotherteacher($uid, $room, $code, $priority)) {
                     $step3done[$uid] = true;
                     $assigned[$uid]['dfcourseid'] = (int)$dfa['courseid']; // Shown as "Class".
                     $results['step3']++;
@@ -1058,21 +1205,23 @@ function local_roomscheduler_run_scheduler() {
                 }
                 continue;
             }
-            if (in_array($room->interventiontype, ['IEP', 'NA'])) continue;
+            if (in_array($room->interventiontype, ['IEP', 'NA'])) {
+                continue;
+            }
             $cap   = (int)$room->maxstudents;
-            $usage = count($roomAssigned[$room->teacherid] ?? []);
+            $usage = count($roomassigned[$room->teacherid] ?? []);
             if ($cap > 0 && $usage < $cap) {
-                $assignStudent($uid, $room, $code, $priority);
+                $assignstudent($uid, $room, $code, $priority);
                 $step3done[$uid] = true;
                 $assigned[$uid]['dfcourseid'] = (int)$dfa['courseid']; // Shown as "Class".
                 $results['step3']++;
                 break;
-            } else if ($swapToKeepOwnTeacher($uid, $room, $code, $priority)) {
+            } else if ($swaptokeepownteacher($uid, $room, $code, $priority)) {
                 $step3done[$uid] = true;
                 $assigned[$uid]['dfcourseid'] = (int)$dfa['courseid']; // Shown as "Class".
                 $results['step3']++;
                 break;
-            } else if ($forceAssign($uid, $room, $code, $priority)) {
+            } else if ($forceassign($uid, $room, $code, $priority)) {
                 $step3done[$uid] = true;
                 $assigned[$uid]['dfcourseid'] = (int)$dfa['courseid']; // Shown as "Class".
                 $results['step3']++;
@@ -1085,20 +1234,21 @@ function local_roomscheduler_run_scheduler() {
     // Students denied for attendance get suffix A, behavior gets suffix B.
     // If both, B takes priority over A.
     // Denied students fall through to normal assignment flow (H/S).
-    // =========================================================
-    $denialSuffix   = []; // userid => 'A' or 'B' for students denied rewards.
-    $rewardEligible = []; // userids that earned a reward room this run.
+    $denialsuffix   = []; // Maps userid => 'A' or 'B' for students denied rewards.
+    $rewardeligible = []; // The userids that earned a reward room this run.
 
     foreach ($allusers as $user) {
         $uid = $user->id;
-        if (isset($assigned[$uid])) continue;
+        if (isset($assigned[$uid])) {
+            continue;
+        }
 
         // Check grades only (without attendance).
         $hasgoodgrades = true;
-        if (!isset($studentGrades[$uid]) || empty($studentGrades[$uid])) {
+        if (!isset($studentgrades[$uid]) || empty($studentgrades[$uid])) {
             $hasgoodgrades = false;
         } else {
-            foreach ($studentGrades[$uid] as $pct) {
+            foreach ($studentgrades[$uid] as $pct) {
                 if ($pct < $abthreshold) {
                     $hasgoodgrades = false;
                     break;
@@ -1106,136 +1256,154 @@ function local_roomscheduler_run_scheduler() {
             }
         }
 
-        if (!$hasgoodgrades) continue;
+        if (!$hasgoodgrades) {
+            continue;
+        }
 
         // Has all A/B grades — check for denials.
-        $attPct       = $adjustedattendance[$uid] ?? 100.0;
-        $attDenied    = ($attPct < $attendancethreshold);
-        $behaviorDen  = isset($behaviorDenied[$uid]);
+        $attpct       = $adjustedattendance[$uid] ?? 100.0;
+        $attdenied    = ($attpct < $attendancethreshold);
+        $behaviorden  = isset($behaviordenied[$uid]);
 
-        if ($attDenied && $behaviorDen) {
+        if ($attdenied && $behaviorden) {
             // B takes priority.
-            $denialSuffix[$uid] = 'B';
+            $denialsuffix[$uid] = 'B';
             $results['step4absent']++;
             $results['step4behavior']++;
             continue; // Falls through to normal flow.
         }
-        if ($behaviorDen) {
-            $denialSuffix[$uid] = 'B';
+        if ($behaviorden) {
+            $denialsuffix[$uid] = 'B';
             $results['step4behavior']++;
             continue;
         }
-        if ($attDenied) {
-            $denialSuffix[$uid] = 'A';
+        if ($attdenied) {
+            $denialsuffix[$uid] = 'A';
             $results['step4absent']++;
             continue;
         }
 
         // Passes all checks — queue for a reward room.
-        $rewardEligible[] = $uid;
+        $rewardeligible[] = $uid;
     }
 
     // Reward students whose own homeroom is a reward room stay there, so no
     // one is moved from one reward room to another for no reason. They are
     // placed first so the even distribution below balances around them.
-    $rewardRemaining = [];
-    foreach ($rewardEligible as $uid) {
-        $homeroom = $stuByUser[$uid]->homeroom ?? '';
-        if ($homeroom !== '' && isset($roomByNumber[$homeroom]) &&
-                !empty($roomByNumber[$homeroom]->isrewardroom)) {
-            $hrroom = $roomByNumber[$homeroom];
-            $assignStudent($uid, $hrroom, 'R', 5);
-            $rewardAssignedCount[$hrroom->teacherid]++;
+    $rewardremaining = [];
+    foreach ($rewardeligible as $uid) {
+        $homeroom = $stubyuser[$uid]->homeroom ?? '';
+        if (
+            $homeroom !== '' && isset($roombynumber[$homeroom]) &&
+                !empty($roombynumber[$homeroom]->isrewardroom)
+        ) {
+            $hrroom = $roombynumber[$homeroom];
+            $assignstudent($uid, $hrroom, 'R', 5);
+            $rewardassignedcount[$hrroom->teacherid]++;
             $results['step4']++;
         } else {
-            $rewardRemaining[] = $uid;
+            $rewardremaining[] = $uid;
         }
     }
 
     // Everyone else is distributed evenly across the checked reward rooms.
     // If no reward rooms are configured, the student falls through to the
     // normal homeroom/general assignment flow in Steps 5 & 6.
-    foreach ($rewardRemaining as $uid) {
-        if ($assignToRewardRoom($uid, 'R', 5)) {
+    foreach ($rewardremaining as $uid) {
+        if ($assigntorewardroom($uid, 'R', 5)) {
             $results['step4']++;
         }
     }
-    
-    // =========================================================
+
     // STEP 5 & 6: Everyone else → homeroom (priority=6)
     // Assign to homeroom first, then enforce capacity.
-    // =========================================================
 
     // Homeroom is a reward room (no reward earned) or an ELA 1+ / Math 1+
     // room. These students are moved to another room in Step 7.
-    $rewardHomeroomPending = [];
+    $rewardhomeroompending = [];
     foreach ($allusers as $user) {
         $uid = $user->id;
-        if (isset($assigned[$uid])) continue;
-        if (!isset($stuByUser[$uid]) || empty($stuByUser[$uid]->homeroom)) {
+        if (isset($assigned[$uid])) {
+            continue;
+        }
+        if (!isset($stubyuser[$uid]) || empty($stubyuser[$uid]->homeroom)) {
             $results['skipped']++;
             continue;
         }
-        if ($assignToHomeroom($uid, 'H', 6)) {
+        if ($assigntohomeroom($uid, 'H', 6)) {
             $results['step6']++;
         } else {
             // Homeroom is a reward room or a + room — placed in Step 7 below.
-            $rewardHomeroomPending[] = $uid;
+            $rewardhomeroompending[] = $uid;
         }
     }
 
-    // =========================================================
     // CAPACITY ENFORCEMENT PASS
     // For each room over capacity OR with capacity=0 (teacher absent),
     // displace students to other rooms with code S.
-    // =========================================================
     foreach ($roomrecords as $room) {
-        if (in_array($room->interventiontype, ['IEP', 'NA'])) continue;
-        if (!empty($room->isrewardroom)) continue;
-        // + rooms hold only swap students and their teacher's own requests,
+        if (in_array($room->interventiontype, ['IEP', 'NA'])) {
+            continue;
+        }
+        if (!empty($room->isrewardroom)) {
+            continue;
+        }
+        // Plus (+) rooms hold only swap students and their teacher's own requests,
         // which may go past Max # on purpose.
-        if (isset($plusRooms[$room->teacherid])) continue;
+        if (isset($plusrooms[$room->teacherid])) {
+            continue;
+        }
         $cap       = (int)$room->maxstudents;
-        $occupants = $roomAssigned[$room->teacherid] ?? [];
+        $occupants = $roomassigned[$room->teacherid] ?? [];
         $usage     = count($occupants);
 
-        // cap=0 means teacher absent — displace ALL students.
+        // A cap of 0 means teacher absent — displace ALL students.
         // cap>0 means normal capacity check.
-        if ($cap > 0 && $usage <= $cap) continue;
-        if ($cap > 0 && $usage == 0) continue;
-        if ($cap == 0 && $usage == 0) continue;
+        if ($cap > 0 && $usage <= $cap) {
+            continue;
+        }
+        if ($cap > 0 && $usage == 0) {
+            continue;
+        }
+        if ($cap == 0 && $usage == 0) {
+            continue;
+        }
 
         // Sort occupants by priority descending (highest = most displaceable first).
         $sorted = array_keys($occupants);
-        usort($sorted, function($a, $b) use ($assigned) {
+        usort($sorted, function ($a, $b) use ($assigned) {
             return ($assigned[$b]['priority'] ?? 0) <=> ($assigned[$a]['priority'] ?? 0);
         });
 
         // Displace until within capacity (or all gone if cap=0).
         foreach ($sorted as $ouid) {
-            $currentusage = count($roomAssigned[$room->teacherid]);
+            $currentusage = count($roomassigned[$room->teacherid]);
             // Stop if within capacity (for cap>0 rooms).
-            if ($cap > 0 && $currentusage <= $cap) break;
+            if ($cap > 0 && $currentusage <= $cap) {
+                break;
+            }
             // For cap=0 rooms, displace everyone regardless of priority.
             $opri = $assigned[$ouid]['priority'] ?? 0;
-            if ($cap > 0 && $opri < 6) break; // Don't displace high-priority from normal rooms.
+            if ($cap > 0 && $opri < 6) {
+                break; // Don't displace high-priority from normal rooms.
+            }
 
-            $disproom = $findDisplacementRoom($ouid, $room->roomnumber);
+            $disproom = $finddisplacementroom($ouid, $room->roomnumber);
             if ($disproom) {
-                $unassignStudent($ouid);
-                $assignStudent($ouid, $disproom, 'S', 7);
+                $unassignstudent($ouid);
+                $assignstudent($ouid, $disproom, 'S', 7);
                 $results['displaced']++;
             } else if ($cap == 0) {
                 // No room with space, and this room takes no one. Hand the
                 // student to Step 7, which uses the least-full room if needed.
-                $unassignStudent($ouid);
-                $rewardHomeroomPending[] = $ouid;
+                $unassignstudent($ouid);
+                $rewardhomeroompending[] = $ouid;
             } else {
                 // No displacement room found — assign to homeroom as fallback.
-                $unassignStudent($ouid);
-                if (isset($stuByUser[$ouid]) && !empty($stuByUser[$ouid]->homeroom)) {
+                $unassignstudent($ouid);
+                if (isset($stubyuser[$ouid]) && !empty($stubyuser[$ouid]->homeroom)) {
                     $assigned[$ouid] = [
-                        'room'     => $stuByUser[$ouid]->homeroom,
+                        'room'     => $stubyuser[$ouid]->homeroom,
                         'code'     => 'S',
                         'priority' => 7,
                     ];
@@ -1244,26 +1412,24 @@ function local_roomscheduler_run_scheduler() {
         }
     }
 
-    // =========================================================
     // STEP 7: Homeroom is a reward room but the student did not earn a
     // reward, or homeroom is an ELA 1+ / Math 1+ room -> move to a normal
     // room with space (code S). Runs after the capacity pass so these
     // students never push anyone else out. + rooms are never used here.
-    // =========================================================
-    foreach ($rewardHomeroomPending as $uid) {
-        $homeroom = $stuByUser[$uid]->homeroom;
-        $newroom  = $findDisplacementRoom($uid, $homeroom);
+    foreach ($rewardhomeroompending as $uid) {
+        $homeroom = $stubyuser[$uid]->homeroom;
+        $newroom  = $finddisplacementroom($uid, $homeroom);
 
         if (!$newroom) {
             // Every non-reward room is full — use the least-full one anyway
             // rather than leave the student without a Thur/Fri room.
             foreach (['GEN', 'ELA2', 'MTH2', 'ELA1', 'MTH1'] as $type) {
-                foreach (($roomsByType[$type] ?? []) as $r) {
+                foreach (($roomsbytype[$type] ?? []) as $r) {
                     if ((int)$r->maxstudents <= 0) {
                         continue;
                     }
-                    $rcount = count($roomAssigned[$r->teacherid] ?? []);
-                    if (!$newroom || count($roomAssigned[$newroom->teacherid] ?? []) > $rcount) {
+                    $rcount = count($roomassigned[$r->teacherid] ?? []);
+                    if (!$newroom || count($roomassigned[$newroom->teacherid] ?? []) > $rcount) {
                         $newroom = $r;
                     }
                 }
@@ -1271,14 +1437,13 @@ function local_roomscheduler_run_scheduler() {
         }
 
         if ($newroom) {
-            $assignStudent($uid, $newroom, 'S', 7);
+            $assignstudent($uid, $newroom, 'S', 7);
             $results['displaced']++;
         } else {
             $results['skipped']++;
         }
     }
 
-    // =========================================================
     // STEP 8: Level the General rooms.
     // The capacity pass only moves students out of a room that is over its
     // cap, so one General room can sit at 20 while another sits at 10. Here
@@ -1287,12 +1452,11 @@ function local_roomscheduler_run_scheduler() {
     // no more than $levelgap. D/F/Q/E/M students are never moved, and reward
     // rooms are neither donors nor receivers. The gap is set on the Run
     // Scheduler page (default 4); 0 turns leveling off.
-    // =========================================================
     $levelgap = get_config('local_roomscheduler', 'levelgap');
     $levelgap = ($levelgap === false || $levelgap === '') ? 4 : (int)$levelgap;
 
     $levelrooms = [];
-    foreach (($levelgap > 0 ? ($roomsByType['GEN'] ?? []) : []) as $r) {
+    foreach (($levelgap > 0 ? ($roomsbytype['GEN'] ?? []) : []) as $r) {
         if (!empty($r->isrewardroom) || (int)$r->maxstudents <= 0) {
             continue;
         }
@@ -1304,8 +1468,8 @@ function local_roomscheduler_run_scheduler() {
     $maxmoves = count($assigned);
     for ($moves = 0; $moves < $maxmoves && count($levelrooms) > 1; $moves++) {
         // General rooms include ELA/Math rooms that got no swap students this
-    // run (Step 1b). + rooms are never General, so they are never leveled.
-    // Fullest room that still has a movable (H or S) student.
+        // run (Step 1b). + rooms are never General, so they are never leveled.
+        // Fullest room that still has a movable (H or S) student.
         $donor      = null;
         $donorcount = -1;
         // Emptiest room that is still under its own cap.
@@ -1313,13 +1477,13 @@ function local_roomscheduler_run_scheduler() {
         $receivercount = PHP_INT_MAX;
 
         foreach ($levelrooms as $r) {
-            $count = count($roomAssigned[$r->teacherid] ?? []);
+            $count = count($roomassigned[$r->teacherid] ?? []);
             if ($count < (int)$r->maxstudents && $count < $receivercount) {
                 $receiver      = $r;
                 $receivercount = $count;
             }
             if ($count > $donorcount) {
-                foreach ($roomAssigned[$r->teacherid] ?? [] as $ouid) {
+                foreach ($roomassigned[$r->teacherid] ?? [] as $ouid) {
                     if (($assigned[$ouid]['priority'] ?? 0) >= 6) {
                         $donor      = $r;
                         $donorcount = $count;
@@ -1339,7 +1503,7 @@ function local_roomscheduler_run_scheduler() {
         // Pick the student to move: prefer one who has a class with the
         // receiving teacher, otherwise the first H/S student in the room.
         $moveuid = null;
-        foreach ($roomAssigned[$donor->teacherid] as $ouid) {
+        foreach ($roomassigned[$donor->teacherid] as $ouid) {
             if (($assigned[$ouid]['priority'] ?? 0) < 6) {
                 continue;
             }
@@ -1347,8 +1511,8 @@ function local_roomscheduler_run_scheduler() {
                 $moveuid = $ouid;
             }
             $shared = array_intersect(
-                $studentCourses[$ouid] ?? [],
-                $teacherCourses[$receiver->teacherid] ?? []
+                $studentcourses[$ouid] ?? [],
+                $teachercourses[$receiver->teacherid] ?? []
             );
             if (!empty($shared)) {
                 $moveuid = $ouid;
@@ -1356,29 +1520,25 @@ function local_roomscheduler_run_scheduler() {
             }
         }
 
-        $unassignStudent($moveuid);
-        $assignStudent($moveuid, $receiver, 'S', 7);
+        $unassignstudent($moveuid);
+        $assignstudent($moveuid, $receiver, 'S', 7);
         $results['displaced']++;
     }
 
-    // =========================================================
-    // Apply denial suffixes to final assignments (A or B)
-    // =========================================================
-    foreach ($denialSuffix as $uid => $suffix) {
+    // Apply denial suffixes to final assignments (A or B).
+    foreach ($denialsuffix as $uid => $suffix) {
         if (isset($assigned[$uid])) {
             $assigned[$uid]['code'] = $assigned[$uid]['code'] . $suffix;
         }
     }
 
-    // =========================================================
-    // Write to database
-    // =========================================================
+    // Write to database.
 
     $now = time();
     foreach ($assigned as $userid => $data) {
-        if (isset($stuByUser[$userid])) {
+        if (isset($stubyuser[$userid])) {
             $rec                    = new stdClass();
-            $rec->id                = $stuByUser[$userid]->id;
+            $rec->id                = $stubyuser[$userid]->id;
             $rec->intervention_room = $data['room'];
             $rec->assignment_code   = $data['code'];
             $rec->dfcourseid        = $data['dfcourseid'] ?? 0;
@@ -1386,7 +1546,7 @@ function local_roomscheduler_run_scheduler() {
             $DB->update_record('local_roomscheduler_students', $rec);
         }
     }
-    
+
     $results['total'] = array_sum([
         $results['step1'], $results['step2'], $results['step3'],
         $results['step4'], $results['step5'], $results['step6'],
@@ -1439,22 +1599,29 @@ function local_roomscheduler_dry_run_scheduler() {
 
 /**
  * Get all visible HS courses in the configured category and subcategories.
+ *
+ * @param int $categoryid the top-level course category id to search from
+ * @return array course records keyed by course id
  */
 function local_roomscheduler_get_hs_courses($categoryid) {
     global $DB;
-    if (empty($categoryid)) return [];
+    if (empty($categoryid)) {
+        return [];
+    }
 
     $catids  = [$categoryid];
     $tocheck = [$categoryid];
     while (!empty($tocheck)) {
-        list($insql, $inparams) = $DB->get_in_or_equal($tocheck, SQL_PARAMS_NAMED, 'cat');
+        [$insql, $inparams] = $DB->get_in_or_equal($tocheck, SQL_PARAMS_NAMED, 'cat');
         $subcats = $DB->get_fieldset_select('course_categories', 'id', "parent $insql", $inparams);
         $tocheck = array_diff($subcats, $catids);
         $catids  = array_merge($catids, $subcats);
     }
-    if (empty($catids)) return [];
+    if (empty($catids)) {
+        return [];
+    }
 
-    list($insql, $inparams) = $DB->get_in_or_equal($catids, SQL_PARAMS_NAMED, 'cat');
+    [$insql, $inparams] = $DB->get_in_or_equal($catids, SQL_PARAMS_NAMED, 'cat');
     return $DB->get_records_select('course', "category $insql AND visible = 1", $inparams);
 }
 
@@ -1480,8 +1647,8 @@ function local_roomscheduler_get_student_grades($courseids, $users) {
     }
 
     $userids = array_keys($users);
-    list($coursesql, $courseparams) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, 'crs');
-    list($usersql,   $userparams)   = $DB->get_in_or_equal($userids,   SQL_PARAMS_NAMED, 'usr');
+    [$coursesql, $courseparams] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, 'crs');
+    [$usersql, $userparams]   = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED, 'usr');
 
     $now = time();
 

@@ -49,7 +49,10 @@ $isadmin          = is_siteadmin();
 $counselorcontext = context_course::instance($counselorcourseid);
 $managerroleid    = $DB->get_field('role', 'id', ['shortname' => 'manager']);
 $ismanager        = !empty($managerroleid) && user_has_role_assignment(
-                        $USER->id, $managerroleid, $counselorcontext->id);
+    $USER->id,
+    $managerroleid,
+    $counselorcontext->id
+);
 $canmanage        = ($isadmin || $ismanager);
 
 if (!$canmanage) {
@@ -88,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && optional_param('clearall', 0, PARAM
         \core\output\notification::NOTIFY_SUCCESS
     );
 }
-// --- Render page ---
+// Render page.
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('allrequests_heading', 'local_roomscheduler'));
 
@@ -103,7 +106,7 @@ echo html_writer::start_tag('form', [
     'action' => $clearurl->out(false),
     'class'  => 'd-inline-block',
 ]);
-echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey',  'value' => sesskey()]);
+echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'clearall', 'value' => '1']);
 echo html_writer::empty_tag('input', [
     'type'    => 'submit',
@@ -129,7 +132,8 @@ echo html_writer::tag('style', '
     .allrequests-table .score-3 { background-color: #f0fff0 !important; }
 ');
 
-echo html_writer::tag('p',
+echo html_writer::tag(
+    'p',
     count($requests) . ' total intervention request(s).',
     ['class' => 'text-muted mb-2']
 );
@@ -142,15 +146,15 @@ echo html_writer::start_tag('table', [
 // Header.
 echo html_writer::start_tag('thead', ['class' => 'thead-light']);
 echo html_writer::start_tag('tr');
-echo html_writer::tag('th', '#',                                                        ['style' => 'width:4%']);
-echo html_writer::tag('th', get_string('lastname',          'local_roomscheduler'),     ['style' => 'width:14%']);
-echo html_writer::tag('th', get_string('firstname',         'local_roomscheduler'),     ['style' => 'width:12%']);
-echo html_writer::tag('th', get_string('sisid',             'local_roomscheduler'),     ['style' => 'width:9%']);
-echo html_writer::tag('th', get_string('ela_score',         'local_roomscheduler'),     ['style' => 'width:7%']);
-echo html_writer::tag('th', get_string('math_score',        'local_roomscheduler'),     ['style' => 'width:7%']);
-echo html_writer::tag('th', get_string('homeroom',          'local_roomscheduler'),     ['style' => 'width:10%']);
-echo html_writer::tag('th', get_string('intervention_room', 'local_roomscheduler'),     ['style' => 'width:10%']);
-echo html_writer::tag('th', get_string('teachercolumn',     'local_roomscheduler'),     ['style' => 'width:17%']);
+echo html_writer::tag('th', '#', ['style' => 'width:4%']);
+echo html_writer::tag('th', get_string('lastname', 'local_roomscheduler'), ['style' => 'width:14%']);
+echo html_writer::tag('th', get_string('firstname', 'local_roomscheduler'), ['style' => 'width:12%']);
+echo html_writer::tag('th', get_string('sisid', 'local_roomscheduler'), ['style' => 'width:9%']);
+echo html_writer::tag('th', get_string('ela_score', 'local_roomscheduler'), ['style' => 'width:7%']);
+echo html_writer::tag('th', get_string('math_score', 'local_roomscheduler'), ['style' => 'width:7%']);
+echo html_writer::tag('th', get_string('homeroom', 'local_roomscheduler'), ['style' => 'width:10%']);
+echo html_writer::tag('th', get_string('intervention_room', 'local_roomscheduler'), ['style' => 'width:10%']);
+echo html_writer::tag('th', get_string('teachercolumn', 'local_roomscheduler'), ['style' => 'width:17%']);
 echo html_writer::end_tag('tr');
 echo html_writer::end_tag('thead');
 
@@ -159,11 +163,11 @@ echo html_writer::start_tag('tbody');
 $i = 0;
 foreach ($requests as $req) {
     $i++;
-    $elaval   = $req->ela_score        ? (int)$req->ela_score        : 3;
-    $mathval  = $req->math_score       ? (int)$req->math_score       : 3;
-    $homeroom = $req->homeroom         ? s($req->homeroom)           : '—';
+    $elaval   = $req->ela_score ? (int)$req->ela_score : 3;
+    $mathval  = $req->math_score ? (int)$req->math_score : 3;
+    $homeroom = $req->homeroom ? s($req->homeroom) : '—';
     $introom  = $req->intervention_room ? s($req->intervention_room) : '—';
-    $sisid    = $req->idnumber         ? s($req->idnumber)           : '—';
+    $sisid    = $req->idnumber ? s($req->idnumber) : '—';
 
     $minscore = min($elaval, $mathval);
     $rowclass = 'score-' . $minscore;

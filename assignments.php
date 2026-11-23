@@ -54,7 +54,10 @@ if (empty($counselorcourseid)) {
 $counselorcontext = context_course::instance($counselorcourseid);
 $managerroleid     = $DB->get_field('role', 'id', ['shortname' => 'manager']);
 $ismanager         = !empty($managerroleid) && user_has_role_assignment(
-                         $USER->id, $managerroleid, $counselorcontext->id);
+    $USER->id,
+    $managerroleid,
+    $counselorcontext->id
+);
 $canmanage         = ($isadmin || $ismanager);
 
 if (!$canmanage) {
@@ -64,7 +67,7 @@ if (!$canmanage) {
     die;
 }
 
-// --- Selected room and intervention-type field ---
+// Selected room and intervention-type field.
 $selectedroom = optional_param('roomnumber', '', PARAM_TEXT);
 
 // Only two fields are ever valid here — whitelist to keep this injection-safe.
@@ -73,8 +76,8 @@ if (!in_array($field, ['homeroom', 'intervention_room'])) {
     $field = 'intervention_room';
 }
 
-// --- Room dropdown: every room on file, listed by teacher (Last, First) so
-// staff can find a room by the person's name rather than the room number. ---
+// Room dropdown: every room on file, listed by teacher (Last, First) so
+// staff can find a room by the person's name rather than the room number.
 $roomsql = "SELECT r.id, r.roomnumber, u.lastname, u.firstname
               FROM {local_roomscheduler_rooms} r
               JOIN {user} u ON u.id = r.teacherid
@@ -94,7 +97,7 @@ foreach ($roomrows as $row) {
     }
 }
 
-// --- Render page ---
+// Render page.
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('assignments_heading', 'local_roomscheduler'));
 
@@ -111,8 +114,11 @@ echo html_writer::start_tag('form', [
     'class'  => 'd-flex align-items-center flex-wrap mb-3',
 ]);
 
-echo html_writer::tag('label', get_string('assignmentsroomlabel', 'local_roomscheduler'),
-    ['for' => 'roomnumber', 'class' => 'mr-2 mb-0']);
+echo html_writer::tag(
+    'label',
+    get_string('assignmentsroomlabel', 'local_roomscheduler'),
+    ['for' => 'roomnumber', 'class' => 'mr-2 mb-0']
+);
 echo html_writer::select(
     $roomoptions,
     'roomnumber',
@@ -129,8 +135,11 @@ echo html_writer::empty_tag('input', array_merge(
      'onchange' => 'this.form.submit()', 'class' => 'mr-1'],
     ($field === 'homeroom') ? ['checked' => 'checked'] : []
 ));
-echo html_writer::tag('label', get_string('hrattendance', 'local_roomscheduler'),
-    ['for' => 'field_homeroom', 'class' => 'mb-0']);
+echo html_writer::tag(
+    'label',
+    get_string('hrattendance', 'local_roomscheduler'),
+    ['for' => 'field_homeroom', 'class' => 'mb-0']
+);
 echo html_writer::end_span();
 
 echo html_writer::start_span();
@@ -139,14 +148,17 @@ echo html_writer::empty_tag('input', array_merge(
      'onchange' => 'this.form.submit()', 'class' => 'mr-1'],
     ($field === 'intervention_room') ? ['checked' => 'checked'] : []
 ));
-echo html_writer::tag('label', get_string('intervention_room', 'local_roomscheduler'),
-    ['for' => 'field_intervention', 'class' => 'mb-0']);
+echo html_writer::tag(
+    'label',
+    get_string('intervention_room', 'local_roomscheduler'),
+    ['for' => 'field_intervention', 'class' => 'mb-0']
+);
 echo html_writer::end_span();
 
 echo html_writer::end_div();
 
 echo html_writer::end_tag('form');
-echo html_writer::end_div(); // .no-print
+echo html_writer::end_div(); // End of no-print block.
 
 // Print-only header (hidden on screen, shown only in the printout).
 echo html_writer::start_div('print-header');
@@ -160,7 +172,7 @@ if (empty($selectedroom)) {
     die;
 }
 
-// --- Students assigned to the selected room for the selected field ---
+// Students assigned to the selected room for the selected field.
 $sql = "SELECT s.*, u.firstname, u.lastname, u.idnumber, c.fullname AS dfcoursename
           FROM {local_roomscheduler_students} s
           JOIN {user} u ON u.id = s.userid
@@ -212,15 +224,15 @@ echo html_writer::start_tag('table', [
 
 echo html_writer::start_tag('thead', ['class' => 'thead-light']);
 echo html_writer::start_tag('tr');
-echo html_writer::tag('th', get_string('lastname',          'local_roomscheduler'), ['style' => 'width:14%']);
-echo html_writer::tag('th', get_string('firstname',         'local_roomscheduler'), ['style' => 'width:12%']);
-echo html_writer::tag('th', get_string('sisid',              'local_roomscheduler'), ['style' => 'width:9%']);
-echo html_writer::tag('th', get_string('ela_score',          'local_roomscheduler'), ['style' => 'width:6%']);
-echo html_writer::tag('th', get_string('math_score',         'local_roomscheduler'), ['style' => 'width:6%']);
-echo html_writer::tag('th', get_string('col_monwed',         'local_roomscheduler'), ['style' => 'width:9%; text-align:center;']);
-echo html_writer::tag('th', get_string('col_thurfri',        'local_roomscheduler'), ['style' => 'width:9%; text-align:center;']);
+echo html_writer::tag('th', get_string('lastname', 'local_roomscheduler'), ['style' => 'width:14%']);
+echo html_writer::tag('th', get_string('firstname', 'local_roomscheduler'), ['style' => 'width:12%']);
+echo html_writer::tag('th', get_string('sisid', 'local_roomscheduler'), ['style' => 'width:9%']);
+echo html_writer::tag('th', get_string('ela_score', 'local_roomscheduler'), ['style' => 'width:6%']);
+echo html_writer::tag('th', get_string('math_score', 'local_roomscheduler'), ['style' => 'width:6%']);
+echo html_writer::tag('th', get_string('col_monwed', 'local_roomscheduler'), ['style' => 'width:9%; text-align:center;']);
+echo html_writer::tag('th', get_string('col_thurfri', 'local_roomscheduler'), ['style' => 'width:9%; text-align:center;']);
 echo html_writer::tag('th', 'Code', ['style' => 'width:7%; white-space:nowrap;']);
-echo html_writer::tag('th', get_string('col_class',          'local_roomscheduler'), ['style' => 'width:28%']);
+echo html_writer::tag('th', get_string('col_class', 'local_roomscheduler'), ['style' => 'width:28%']);
 echo html_writer::end_tag('tr');
 echo html_writer::end_tag('thead');
 
@@ -232,9 +244,10 @@ foreach ($rows as $row) {
     echo html_writer::tag('td', !empty($row->idnumber) ? s($row->idnumber) : '—');
     echo html_writer::tag('td', (int)$row->ela_score);
     echo html_writer::tag('td', (int)$row->math_score);
-    echo html_writer::tag('td', s($row->homeroom),          ['style' => 'text-align:center;']);
+    echo html_writer::tag('td', s($row->homeroom), ['style' => 'text-align:center;']);
     echo html_writer::tag('td', s($row->intervention_room), ['style' => 'text-align:center;']);
-    echo html_writer::tag('td',
+    echo html_writer::tag(
+        'td',
         html_writer::span(s($row->assignment_code), 'badge badge-secondary'),
         ['style' => 'text-align:center;']
     );
@@ -250,7 +263,9 @@ echo html_writer::end_tag('div');
 echo local_roomscheduler_code_legend();
 
 echo html_writer::start_div('mt-3 no-print');
-echo html_writer::tag('button', 'Print',
+echo html_writer::tag(
+    'button',
+    'Print',
     ['class' => 'btn btn-secondary', 'onclick' => 'window.print(); return false;']
 );
 echo html_writer::end_div();

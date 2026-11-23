@@ -49,7 +49,10 @@ $isadmin          = is_siteadmin();
 $counselorcontext = context_course::instance($counselorcourseid);
 $managerroleid    = $DB->get_field('role', 'id', ['shortname' => 'manager']);
 $ismanager        = !empty($managerroleid) && user_has_role_assignment(
-                        $USER->id, $managerroleid, $counselorcontext->id);
+    $USER->id,
+    $managerroleid,
+    $counselorcontext->id
+);
 $canmanage        = ($isadmin || $ismanager);
 
 if (!$canmanage) {
@@ -108,12 +111,12 @@ $students = $DB->get_records_sql($sql, $params);
 
 // Load existing behavior records keyed by userid.
 $behaviorrecords = $DB->get_records('local_roomscheduler_behavior', null, '', '*');
-$behaviorByUser  = [];
+$behaviorbyuser  = [];
 foreach ($behaviorrecords as $b) {
-    $behaviorByUser[$b->userid] = $b;
+    $behaviorbyuser[$b->userid] = $b;
 }
 
-// --- Handle form submission ---
+// Handle form submission.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_sesskey();
 
@@ -159,7 +162,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    $redirecturl = new moodle_url('/local/roomscheduler/behavior.php',
+    $redirecturl = new moodle_url(
+        '/local/roomscheduler/behavior.php',
         $selectedgroup ? ['groupid' => $selectedgroup] : []
     );
     redirect(
@@ -170,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     );
 }
 
-// --- Render page ---
+// Render page.
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('behavior_heading', 'local_roomscheduler'));
 
@@ -178,7 +182,8 @@ echo $OUTPUT->heading(get_string('behavior_heading', 'local_roomscheduler'));
 local_roomscheduler_print_intervention_tabs('behavior', $counselorcourseid, $canmanage, $canmanage);
 
 // Instructions.
-echo html_writer::tag('p',
+echo html_writer::tag(
+    'p',
     get_string('behaviorinstructions', 'local_roomscheduler'),
     ['class' => 'alert alert-info']
 );
@@ -195,12 +200,16 @@ if (!empty($groups)) {
         'action' => $filterurl->out(false),
         'class'  => 'mb-2',
     ]);
-    echo html_writer::tag('label',
+    echo html_writer::tag(
+        'label',
         get_string('selectgroup', 'local_roomscheduler') . ': ',
         ['for' => 'groupid', 'class' => 'mr-2 font-weight-bold']
     );
     echo html_writer::select(
-        $groupoptions, 'groupid', $selectedgroup, false,
+        $groupoptions,
+        'groupid',
+        $selectedgroup,
+        false,
         ['id' => 'groupid', 'class' => 'form-control d-inline-block w-auto mr-2',
          'onchange' => 'this.form.submit()']
     );
@@ -223,7 +232,8 @@ echo html_writer::tag('style', '
 ');
 
 // Form.
-$formurl = new moodle_url('/local/roomscheduler/behavior.php',
+$formurl = new moodle_url(
+    '/local/roomscheduler/behavior.php',
     $selectedgroup ? ['groupid' => $selectedgroup] : []
 );
 
@@ -254,7 +264,7 @@ echo html_writer::start_tag('table', [
 // Header.
 echo html_writer::start_tag('thead', ['class' => 'thead-light']);
 echo html_writer::start_tag('tr');
-echo html_writer::tag('th', get_string('lastname',  'local_roomscheduler'), ['style' => 'width:28%']);
+echo html_writer::tag('th', get_string('lastname', 'local_roomscheduler'), ['style' => 'width:28%']);
 echo html_writer::tag('th', get_string('firstname', 'local_roomscheduler'), ['style' => 'width:22%']);
 echo html_writer::tag('th', get_string('denyreward', 'local_roomscheduler'), ['style' => 'width:20%; text-align:center;']);
 echo html_writer::end_tag('tr');
@@ -264,8 +274,8 @@ echo html_writer::start_tag('tbody');
 
 foreach ($students as $student) {
     $uid       = (int)$student->id;
-    $bhv       = $behaviorByUser[$uid] ?? null;
-    $denied    = $bhv ? (int)$bhv->denied    : 0;
+    $bhv       = $behaviorbyuser[$uid] ?? null;
+    $denied    = $bhv ? (int)$bhv->denied : 0;
     $incidents = $bhv ? (int)$bhv->incidents : 0;
 
     $rowclass = $denied ? 'denied-row' : '';

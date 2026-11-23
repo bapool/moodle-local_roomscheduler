@@ -68,24 +68,23 @@ asort($teacheroptions); // Alphabetical order.
 // Intervention type options.
 $typeoptions = [
     'ELA1P' => get_string('type_ELA1P', 'local_roomscheduler'),
-    'ELA1'  => get_string('type_ELA1',  'local_roomscheduler'),
-    'ELA2'  => get_string('type_ELA2',  'local_roomscheduler'),
+    'ELA1'  => get_string('type_ELA1', 'local_roomscheduler'),
+    'ELA2'  => get_string('type_ELA2', 'local_roomscheduler'),
     'MTH1P' => get_string('type_MTH1P', 'local_roomscheduler'),
-    'MTH1'  => get_string('type_MTH1',  'local_roomscheduler'),
-    'MTH2'  => get_string('type_MTH2',  'local_roomscheduler'),
-    'GEN'   => get_string('type_GEN',   'local_roomscheduler'),
-    'IEP'   => get_string('type_IEP',   'local_roomscheduler'),
-    'NA'    => get_string('type_NA',    'local_roomscheduler'),
+    'MTH1'  => get_string('type_MTH1', 'local_roomscheduler'),
+    'MTH2'  => get_string('type_MTH2', 'local_roomscheduler'),
+    'GEN'   => get_string('type_GEN', 'local_roomscheduler'),
+    'IEP'   => get_string('type_IEP', 'local_roomscheduler'),
+    'NA'    => get_string('type_NA', 'local_roomscheduler'),
 ];
 
-// --- Handle form submission ---
+// Handle form submission.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
     require_sesskey();
 
-    $teacherid        = required_param('teacherid',        PARAM_INT);
-    $roomnumber       = required_param('roomnumber',       PARAM_TEXT);
-    $maxstudents      = required_param('maxstudents',      PARAM_INT);
+    $teacherid        = required_param('teacherid', PARAM_INT);
+    $roomnumber       = required_param('roomnumber', PARAM_TEXT);
+    $maxstudents      = required_param('maxstudents', PARAM_INT);
     $interventiontype = required_param('interventiontype', PARAM_ALPHANUMEXT);
 
     // Validate intervention type is one of the allowed values.
@@ -133,15 +132,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     );
 }
 
-// --- Render the form ---
+// Render the form.
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('assign_rooms', 'local_roomscheduler'));
 
 // Set current values (for edit) or defaults (for add).
-$currentteacher  = $record ? $record->teacherid        : 0;
-$currentroom     = $record ? $record->roomnumber        : '';
-$currentmax      = $record ? $record->maxstudents       : 0;
-$currenttype     = $record ? $record->interventiontype  : 'NA';
+$currentteacher  = $record ? $record->teacherid : 0;
+$currentroom     = $record ? $record->roomnumber : '';
+$currentmax      = $record ? $record->maxstudents : 0;
+$currenttype     = $record ? $record->interventiontype : 'NA';
 
 $formurl = new moodle_url('/local/roomscheduler/edit.php', $id ? ['id' => $id] : []);
 
@@ -160,18 +159,26 @@ echo html_writer::empty_tag('input', [
 
 // Teacher dropdown.
 echo html_writer::start_div('form-group row');
-echo html_writer::tag('label',
+echo html_writer::tag(
+    'label',
     get_string('teacher', 'local_roomscheduler'),
     ['class' => 'col-md-3 col-form-label', 'for' => 'teacherid']
 );
 echo html_writer::start_div('col-md-9');
-echo html_writer::select($teacheroptions, 'teacherid', $currentteacher, ['' => 'choosedots'], ['id' => 'teacherid', 'class' => 'form-control']);
+echo html_writer::select(
+    $teacheroptions,
+    'teacherid',
+    $currentteacher,
+    ['' => 'choosedots'],
+    ['id' => 'teacherid', 'class' => 'form-control']
+);
 echo html_writer::end_div();
 echo html_writer::end_div();
 
 // Room number input.
 echo html_writer::start_div('form-group row');
-echo html_writer::tag('label',
+echo html_writer::tag(
+    'label',
     get_string('roomnumber', 'local_roomscheduler'),
     ['class' => 'col-md-3 col-form-label', 'for' => 'roomnumber']
 );
@@ -190,18 +197,26 @@ echo html_writer::end_div();
 
 // Intervention type dropdown.
 echo html_writer::start_div('form-group row');
-echo html_writer::tag('label',
+echo html_writer::tag(
+    'label',
     get_string('interventiontype', 'local_roomscheduler'),
     ['class' => 'col-md-3 col-form-label', 'for' => 'interventiontype']
 );
 echo html_writer::start_div('col-md-9');
-echo html_writer::select($typeoptions, 'interventiontype', $currenttype, false, ['id' => 'interventiontype', 'class' => 'form-control']);
+echo html_writer::select(
+    $typeoptions,
+    'interventiontype',
+    $currenttype,
+    false,
+    ['id' => 'interventiontype', 'class' => 'form-control']
+);
 echo html_writer::end_div();
 echo html_writer::end_div();
 
 // Max students input.
 echo html_writer::start_div('form-group row');
-echo html_writer::tag('label',
+echo html_writer::tag(
+    'label',
     get_string('maxstudents', 'local_roomscheduler'),
     ['class' => 'col-md-3 col-form-label', 'for' => 'maxstudents']
 );

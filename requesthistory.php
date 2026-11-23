@@ -62,10 +62,13 @@ if (!local_roomscheduler_is_in_category((int)$course->category, $hscategoryid) &
 $isadmin        = is_siteadmin();
 $managerroleid  = $DB->get_field('role', 'id', ['shortname' => 'manager']);
 $ismanager      = !empty($managerroleid) && user_has_role_assignment(
-                      $USER->id, $managerroleid, $coursecontext->id);
+    $USER->id,
+    $managerroleid,
+    $coursecontext->id
+);
 $teacherroleid  = $DB->get_field('role', 'id', ['shortname' => 'editingteacher']);
 $teacherroleid2 = $DB->get_field('role', 'id', ['shortname' => 'teacher']);
-$isteacher      = user_has_role_assignment($USER->id, $teacherroleid,  $coursecontext->id)
+$isteacher      = user_has_role_assignment($USER->id, $teacherroleid, $coursecontext->id)
                || user_has_role_assignment($USER->id, $teacherroleid2, $coursecontext->id);
 
 if (!$isadmin && !$isteacher) {
@@ -85,7 +88,7 @@ $archiverows = $DB->get_records_select(
 );
 
 // Group by week.
-$archiveweeks = []; // weekof => [userid => true]
+$archiveweeks = []; // Maps weekof => [userid => true].
 foreach ($archiverows as $arc) {
     $archiveweeks[$arc->weekof][$arc->userid] = true;
 }
@@ -116,7 +119,7 @@ foreach (array_keys($currentuserids) as $uid) {
 // Load student info and scores.
 $students = [];
 if (!empty($allstudentids)) {
-    list($insql, $inparams) = $DB->get_in_or_equal(array_keys($allstudentids), SQL_PARAMS_NAMED, 'st');
+    [$insql, $inparams] = $DB->get_in_or_equal(array_keys($allstudentids), SQL_PARAMS_NAMED, 'st');
     $sql = "SELECT u.id, u.firstname, u.lastname, u.idnumber,
                    s.homeroom, s.intervention_room, s.ela_score, s.math_score, s.assignment_code
               FROM {user} u
@@ -127,7 +130,7 @@ if (!empty($allstudentids)) {
     $students = $DB->get_records_sql($sql, $params);
 }
 
-// --- Render page ---
+// Render page.
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('requesthistory_heading', 'local_roomscheduler')
     . ': ' . fullname($USER));
@@ -158,7 +161,8 @@ echo html_writer::tag('style', '
     .check-yes { color: green; font-weight: bold; font-size: 1.2em; }
 ');
 
-echo html_writer::tag('p',
+echo html_writer::tag(
+    'p',
     'Showing the last 4 weeks of intervention requests you made.',
     ['class' => 'text-muted small mb-2']
 );
@@ -170,13 +174,14 @@ echo html_writer::start_tag('table', [
 
 echo html_writer::start_tag('thead', ['class' => 'thead-light']);
 echo html_writer::start_tag('tr');
-echo html_writer::tag('th', get_string('lastname',   'local_roomscheduler'), ['style' => 'width:18%; text-align:left;']);
-echo html_writer::tag('th', get_string('firstname',  'local_roomscheduler'), ['style' => 'width:15%; text-align:left;']);
-echo html_writer::tag('th', get_string('ela_score',  'local_roomscheduler'), ['style' => 'width:8%']);
+echo html_writer::tag('th', get_string('lastname', 'local_roomscheduler'), ['style' => 'width:18%; text-align:left;']);
+echo html_writer::tag('th', get_string('firstname', 'local_roomscheduler'), ['style' => 'width:15%; text-align:left;']);
+echo html_writer::tag('th', get_string('ela_score', 'local_roomscheduler'), ['style' => 'width:8%']);
 echo html_writer::tag('th', get_string('math_score', 'local_roomscheduler'), ['style' => 'width:8%']);
-echo html_writer::tag('th', 'Current',                                       ['style' => 'width:10%']);
+echo html_writer::tag('th', 'Current', ['style' => 'width:10%']);
 foreach ($weeks as $weekof) {
-    echo html_writer::tag('th',
+    echo html_writer::tag(
+        'th',
         userdate($weekof, '%-m/%-d'),
         ['style' => 'width:10%']
     );
@@ -198,18 +203,20 @@ foreach ($students as $student) {
     $rowclass = 'score-' . $minscore;
 
     echo html_writer::start_tag('tr', ['class' => $rowclass]);
-    echo html_writer::tag('td', s($student->lastname),  ['class' => 'namecell']);
+    echo html_writer::tag('td', s($student->lastname), ['class' => 'namecell']);
     echo html_writer::tag('td', s($student->firstname), ['class' => 'namecell']);
     echo html_writer::tag('td', $elascore);
     echo html_writer::tag('td', $mathscore);
     // Current.
-    echo html_writer::tag('td',
+    echo html_writer::tag(
+        'td',
         isset($currentuserids[$uid]) ? html_writer::span('✓', 'check-yes') : ''
     );
     // Archive weeks.
     foreach ($weeks as $weekof) {
         $wasrequested = isset($archiveweeks[$weekof][$uid]);
-        echo html_writer::tag('td',
+        echo html_writer::tag(
+            'td',
             $wasrequested ? html_writer::span('✓', 'check-yes') : ''
         );
     }

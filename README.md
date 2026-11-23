@@ -209,6 +209,16 @@ The weekly scheduler can run automatically two ways:
 - `NTstatetesting` — Ohio State Test scores, imported externally; used by Set Levels feature
 - `contacts` — SIS student roster with StudentNumber, StateStudentID, GradeLevelCode, and StudentStatus for linking, grade matching, and CTC exclusion
 
+## Coding Standards
+
+Since 0.5.18 the code passes the Moodle Code Checker (phpcs, `moodle` standard) and the Moodle PHPDoc Checker with no errors or warnings, as run by the GitHub Actions workflow (`moodle-plugin-ci`). To keep it that way:
+
+- Local variables are all lowercase with no underscores (`$stubyuser`, not `$stuByUser` or `$stu_by_user`).
+- Every function and class has a docblock, and every function parameter has a matching `@param` line.
+- Inline comments start with a capital letter and end with a period.
+- Strings in `lang/en/local_roomscheduler.php` are kept in alphabetical order by key, with no section comments between them.
+- Files that only define functions or classes (`lib.php`, `scheduler.php`, `classes/`, `db/upgrade.php`) do not need the `defined('MOODLE_INTERNAL') || die();` line.
+
 ## Author
 
 **Brian Pool**

@@ -32,13 +32,23 @@ use core_privacy\local\request\approved_userlist;
 use core_privacy\local\request\transform;
 use core_privacy\local\request\writer;
 
-defined('MOODLE_INTERNAL') || die();
-
+/**
+ * Privacy provider for local_roomscheduler.
+ *
+ * @package    local_roomscheduler
+ * @copyright  2026 Brian Pool
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class provider implements
     \core_privacy\local\metadata\provider,
     \core_privacy\local\request\core_userlist_provider,
     \core_privacy\local\request\plugin\provider {
-
+    /**
+     * Returns metadata about the personal data this plugin stores.
+     *
+     * @param collection $collection the initialised collection to add items to
+     * @return collection the updated collection
+     */
     public static function get_metadata(collection $collection): collection {
 
         $collection->add_database_table(
@@ -110,6 +120,12 @@ class provider implements
         return $collection;
     }
 
+    /**
+     * Get the list of contexts that contain user information for the specified user.
+     *
+     * @param int $userid the user to search
+     * @return contextlist the contextlist containing the list of contexts
+     */
     public static function get_contexts_for_userid(int $userid): contextlist {
         global $DB;
         $contextlist = new contextlist();
@@ -131,32 +147,71 @@ class provider implements
         return $contextlist;
     }
 
+    /**
+     * Get the list of users who have data within a context.
+     *
+     * @param userlist $userlist the userlist containing the list of users
+     * @return void
+     */
     public static function get_users_in_context(userlist $userlist) {
         $context = $userlist->get_context();
         if (!$context instanceof \context_system) {
             return;
         }
 
-        $userlist->add_from_sql('userid',
-            "SELECT teacherid AS userid FROM {local_roomscheduler_rooms}", []);
-        $userlist->add_from_sql('userid',
-            "SELECT userid FROM {local_roomscheduler_students}", []);
-        $userlist->add_from_sql('userid',
-            "SELECT userid FROM {local_roomscheduler_requests}", []);
-        $userlist->add_from_sql('userid',
-            "SELECT teacherid AS userid FROM {local_roomscheduler_requests}", []);
-        $userlist->add_from_sql('userid',
-            "SELECT teacherid AS userid FROM {local_roomscheduler_teacher_prefs}", []);
-        $userlist->add_from_sql('userid',
-            "SELECT userid FROM {local_roomscheduler_request_archive}", []);
-        $userlist->add_from_sql('userid',
-            "SELECT teacherid AS userid FROM {local_roomscheduler_request_archive}", []);
-        $userlist->add_from_sql('userid',
-            "SELECT teacherid AS userid FROM {local_roomscheduler_attendance}", []);
-        $userlist->add_from_sql('userid',
-            "SELECT studentid AS userid FROM {local_roomscheduler_attendance}", []);
+        $userlist->add_from_sql(
+            'userid',
+            "SELECT teacherid AS userid FROM {local_roomscheduler_rooms}",
+            []
+        );
+        $userlist->add_from_sql(
+            'userid',
+            "SELECT userid FROM {local_roomscheduler_students}",
+            []
+        );
+        $userlist->add_from_sql(
+            'userid',
+            "SELECT userid FROM {local_roomscheduler_requests}",
+            []
+        );
+        $userlist->add_from_sql(
+            'userid',
+            "SELECT teacherid AS userid FROM {local_roomscheduler_requests}",
+            []
+        );
+        $userlist->add_from_sql(
+            'userid',
+            "SELECT teacherid AS userid FROM {local_roomscheduler_teacher_prefs}",
+            []
+        );
+        $userlist->add_from_sql(
+            'userid',
+            "SELECT userid FROM {local_roomscheduler_request_archive}",
+            []
+        );
+        $userlist->add_from_sql(
+            'userid',
+            "SELECT teacherid AS userid FROM {local_roomscheduler_request_archive}",
+            []
+        );
+        $userlist->add_from_sql(
+            'userid',
+            "SELECT teacherid AS userid FROM {local_roomscheduler_attendance}",
+            []
+        );
+        $userlist->add_from_sql(
+            'userid',
+            "SELECT studentid AS userid FROM {local_roomscheduler_attendance}",
+            []
+        );
     }
 
+    /**
+     * Export all user data for the specified user, in the specified contexts.
+     *
+     * @param approved_contextlist $contextlist the approved contexts to export information for
+     * @return void
+     */
     public static function export_user_data(approved_contextlist $contextlist) {
         global $DB;
 
@@ -175,7 +230,9 @@ class provider implements
                 ];
             }
             writer::with_context($context)->export_data(
-                [$plugin, 'Rooms'], (object)['records' => $data]);
+                [$plugin, 'Rooms'],
+                (object)['records' => $data]
+            );
         }
 
         $students = $DB->get_records('local_roomscheduler_students', ['userid' => $userid]);
@@ -192,12 +249,16 @@ class provider implements
                 ];
             }
             writer::with_context($context)->export_data(
-                [$plugin, 'Student Scores'], (object)['records' => $data]);
+                [$plugin, 'Student Scores'],
+                (object)['records' => $data]
+            );
         }
 
         $requests = $DB->get_records_sql(
             "SELECT * FROM {local_roomscheduler_requests}
-              WHERE userid = ? OR teacherid = ?", [$userid, $userid]);
+              WHERE userid = ? OR teacherid = ?",
+            [$userid, $userid]
+        );
         if (!empty($requests)) {
             $data = [];
             foreach ($requests as $r) {
@@ -209,7 +270,9 @@ class provider implements
                 ];
             }
             writer::with_context($context)->export_data(
-                [$plugin, 'Intervention Requests'], (object)['records' => $data]);
+                [$plugin, 'Intervention Requests'],
+                (object)['records' => $data]
+            );
         }
 
         $prefs = $DB->get_records('local_roomscheduler_teacher_prefs', ['teacherid' => $userid]);
@@ -219,12 +282,16 @@ class provider implements
                 $data[] = (object)['persistent' => $p->persistent];
             }
             writer::with_context($context)->export_data(
-                [$plugin, 'Teacher Preferences'], (object)['records' => $data]);
+                [$plugin, 'Teacher Preferences'],
+                (object)['records' => $data]
+            );
         }
 
         $archive = $DB->get_records_sql(
             "SELECT * FROM {local_roomscheduler_request_archive}
-              WHERE userid = ? OR teacherid = ?", [$userid, $userid]);
+              WHERE userid = ? OR teacherid = ?",
+            [$userid, $userid]
+        );
         if (!empty($archive)) {
             $data = [];
             foreach ($archive as $a) {
@@ -235,12 +302,16 @@ class provider implements
                 ];
             }
             writer::with_context($context)->export_data(
-                [$plugin, 'Request Archive'], (object)['records' => $data]);
+                [$plugin, 'Request Archive'],
+                (object)['records' => $data]
+            );
         }
 
         $attendance = $DB->get_records_sql(
             "SELECT * FROM {local_roomscheduler_attendance}
-              WHERE teacherid = ? OR studentid = ?", [$userid, $userid]);
+              WHERE teacherid = ? OR studentid = ?",
+            [$userid, $userid]
+        );
         if (!empty($attendance)) {
             $data = [];
             foreach ($attendance as $a) {
@@ -253,10 +324,18 @@ class provider implements
                 ];
             }
             writer::with_context($context)->export_data(
-                [$plugin, 'Attendance'], (object)['records' => $data]);
+                [$plugin, 'Attendance'],
+                (object)['records' => $data]
+            );
         }
     }
 
+    /**
+     * Delete all data for all users in the specified context.
+     *
+     * @param \context $context the specific context to delete data for
+     * @return void
+     */
     public static function delete_data_for_all_users_in_context(\context $context) {
         global $DB;
         if (!$context instanceof \context_system) {
@@ -271,22 +350,43 @@ class provider implements
         $DB->delete_records('local_roomscheduler_attendance');
     }
 
+    /**
+     * Delete all user data for the specified user, in the specified contexts.
+     *
+     * @param approved_contextlist $contextlist the approved contexts and user information to delete information for
+     * @return void
+     */
     public static function delete_data_for_user(approved_contextlist $contextlist) {
         global $DB;
 
         $userid = $contextlist->get_user()->id;
 
-        $DB->delete_records('local_roomscheduler_rooms',            ['teacherid' => $userid]);
-        $DB->delete_records('local_roomscheduler_students',         ['userid'    => $userid]);
-        $DB->delete_records('local_roomscheduler_teacher_prefs',    ['teacherid' => $userid]);
-        $DB->delete_records_select('local_roomscheduler_requests',
-            'userid = :uid OR teacherid = :tid', ['uid' => $userid, 'tid' => $userid]);
-        $DB->delete_records_select('local_roomscheduler_request_archive',
-            'userid = :uid OR teacherid = :tid', ['uid' => $userid, 'tid' => $userid]);
-        $DB->delete_records_select('local_roomscheduler_attendance',
-            'teacherid = :tid OR studentid = :sid', ['tid' => $userid, 'sid' => $userid]);
+        $DB->delete_records('local_roomscheduler_rooms', ['teacherid' => $userid]);
+        $DB->delete_records('local_roomscheduler_students', ['userid'    => $userid]);
+        $DB->delete_records('local_roomscheduler_teacher_prefs', ['teacherid' => $userid]);
+        $DB->delete_records_select(
+            'local_roomscheduler_requests',
+            'userid = :uid OR teacherid = :tid',
+            ['uid' => $userid, 'tid' => $userid]
+        );
+        $DB->delete_records_select(
+            'local_roomscheduler_request_archive',
+            'userid = :uid OR teacherid = :tid',
+            ['uid' => $userid, 'tid' => $userid]
+        );
+        $DB->delete_records_select(
+            'local_roomscheduler_attendance',
+            'teacherid = :tid OR studentid = :sid',
+            ['tid' => $userid, 'sid' => $userid]
+        );
     }
 
+    /**
+     * Delete multiple users within a single context.
+     *
+     * @param approved_userlist $userlist the approved context and user information to delete information for
+     * @return void
+     */
     public static function delete_data_for_users(approved_userlist $userlist) {
         global $DB;
         $context = $userlist->get_context();
@@ -299,23 +399,38 @@ class provider implements
             return;
         }
 
-        list($insql1, $inparams1) = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED, 'u1');
-        list($insql2, $inparams2) = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED, 'u2');
+        [$insql1, $inparams1] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED, 'u1');
+        [$insql2, $inparams2] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED, 'u2');
 
-        $DB->delete_records_select('local_roomscheduler_rooms',
-            "teacherid $insql1", $inparams1);
-        $DB->delete_records_select('local_roomscheduler_students',
-            "userid $insql1", $inparams1);
-        $DB->delete_records_select('local_roomscheduler_teacher_prefs',
-            "teacherid $insql1", $inparams1);
-        $DB->delete_records_select('local_roomscheduler_requests',
+        $DB->delete_records_select(
+            'local_roomscheduler_rooms',
+            "teacherid $insql1",
+            $inparams1
+        );
+        $DB->delete_records_select(
+            'local_roomscheduler_students',
+            "userid $insql1",
+            $inparams1
+        );
+        $DB->delete_records_select(
+            'local_roomscheduler_teacher_prefs',
+            "teacherid $insql1",
+            $inparams1
+        );
+        $DB->delete_records_select(
+            'local_roomscheduler_requests',
             "userid $insql1 OR teacherid $insql2",
-            array_merge($inparams1, $inparams2));
-        $DB->delete_records_select('local_roomscheduler_request_archive',
+            array_merge($inparams1, $inparams2)
+        );
+        $DB->delete_records_select(
+            'local_roomscheduler_request_archive',
             "userid $insql1 OR teacherid $insql2",
-            array_merge($inparams1, $inparams2));
-        $DB->delete_records_select('local_roomscheduler_attendance',
+            array_merge($inparams1, $inparams2)
+        );
+        $DB->delete_records_select(
+            'local_roomscheduler_attendance',
             "teacherid $insql1 OR studentid $insql2",
-            array_merge($inparams1, $inparams2));
+            array_merge($inparams1, $inparams2)
+        );
     }
 }

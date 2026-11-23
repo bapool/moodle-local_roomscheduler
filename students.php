@@ -44,12 +44,15 @@ if (empty($teachercourseid) || empty($counselorcourseid)) {
     die;
 }
 
-// --- Determine access level ---
+// Determine access level.
 $isadmin          = is_siteadmin();
 $counselorcontext = context_course::instance($counselorcourseid);
 $managerroleid    = $DB->get_field('role', 'id', ['shortname' => 'manager']);
 $ismanager        = !empty($managerroleid) && user_has_role_assignment(
-                        $USER->id, $managerroleid, $counselorcontext->id);
+    $USER->id,
+    $managerroleid,
+    $counselorcontext->id
+);
 
 // Teachers in either the teacher course (5513) or the counselor course (53) get read-only.
 $isteacher = $DB->record_exists_sql(
@@ -75,7 +78,7 @@ $selectedgroup = optional_param('groupid', 0, PARAM_INT);
 // Get all groups in the counselor course.
 $groups = groups_get_all_groups($counselorcourseid);
 
-// --- Get students from counselor course (student role only) ---
+// Get students from counselor course (student role only).
 $studentroleid = $DB->get_field('role', 'id', ['shortname' => 'student']);
 
 if ($selectedgroup > 0) {
@@ -130,17 +133,17 @@ foreach ($existingscores as $score) {
     $bystudent[$score->userid] = $score;
 }
 
-// --- CSV export: First/Last name, Grade, SSID, Intervention room ---
+// CSV export: First/Last name, Grade, SSID, Intervention room.
 if ($canmanage && optional_param('exportassignments', 0, PARAM_INT)) {
     $prefix       = $DB->get_prefix();
-    $tbl_contacts = $prefix . 'contacts';
+    $tblcontacts = $prefix . 'contacts';
     $gradebyuserid = [];
     if (!empty($students)) {
-        list($insql, $inparams) = $DB->get_in_or_equal(array_keys($students), SQL_PARAMS_NAMED, 'uid');
+        [$insql, $inparams] = $DB->get_in_or_equal(array_keys($students), SQL_PARAMS_NAMED, 'uid');
         $graderows = $DB->get_records_sql(
             "SELECT u.id AS userid, c.GradeLevelCode AS grade
                FROM {user} u
-               JOIN `$tbl_contacts` c ON c.StudentNumber = CAST(u.idnumber AS UNSIGNED)
+               JOIN `$tblcontacts` c ON c.StudentNumber = CAST(u.idnumber AS UNSIGNED)
               WHERE u.id $insql",
             $inparams
         );
@@ -173,7 +176,7 @@ if ($canmanage && optional_param('exportassignments', 0, PARAM_INT)) {
     exit;
 }
 
-// --- CSV export (short headers; the Import Rooms page reads these too) ---
+// CSV export (short headers; the Import Rooms page reads these too).
 if ($canmanage && optional_param('export', 0, PARAM_INT)) {
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="roomscheduler_students_' . date('Y-m-d') . '.csv"');
@@ -188,9 +191,9 @@ if ($canmanage && optional_param('export', 0, PARAM_INT)) {
         $rec = $bystudent[$student->id] ?? null;
         fputcsv($out, [
             $sisid,
-            $rec ? $rec->ela_score  : '',
+            $rec ? $rec->ela_score : '',
             $rec ? $rec->math_score : '',
-            $rec ? $rec->homeroom   : '',
+            $rec ? $rec->homeroom : '',
             $rec ? $rec->intervention_room : '',
         ]);
     }
@@ -198,34 +201,34 @@ if ($canmanage && optional_param('export', 0, PARAM_INT)) {
     exit;
 }
 
-// --- Handle form submission (managers only) ---
+// Handle form submission (managers only).
 if ($canmanage && $_SERVER['REQUEST_METHOD'] === 'POST') {
     require_sesskey();
 
-    $userids           = optional_param_array('userid',            [], PARAM_INT);
-    $elascores         = optional_param_array('ela_score',         [], PARAM_INT);
-    $mathscores        = optional_param_array('math_score',        [], PARAM_INT);
-    $homerooms         = optional_param_array('homeroom',          [], PARAM_TEXT);
+    $userids           = optional_param_array('userid', [], PARAM_INT);
+    $elascores         = optional_param_array('ela_score', [], PARAM_INT);
+    $mathscores        = optional_param_array('math_score', [], PARAM_INT);
+    $homerooms         = optional_param_array('homeroom', [], PARAM_TEXT);
     $interventionrooms = optional_param_array('intervention_room', [], PARAM_TEXT);
-    $recordids         = optional_param_array('recordid',          [], PARAM_INT);
+    $recordids         = optional_param_array('recordid', [], PARAM_INT);
 
     $now   = time();
     $count = count($userids);
 
     for ($i = 0; $i < $count; $i++) {
-        $userid           = (int) ($userids[$i]    ?? 0);
-        $elascore         = (int) ($elascores[$i]  ?? 3);
+        $userid           = (int) ($userids[$i] ?? 0);
+        $elascore         = (int) ($elascores[$i] ?? 3);
         $mathscore        = (int) ($mathscores[$i] ?? 3);
-        $homeroom         = trim(clean_param($homerooms[$i]         ?? '', PARAM_TEXT));
+        $homeroom         = trim(clean_param($homerooms[$i] ?? '', PARAM_TEXT));
         $interventionroom = trim(clean_param($interventionrooms[$i] ?? '', PARAM_TEXT));
-        $recordid         = (int) ($recordids[$i]  ?? 0);
+        $recordid         = (int) ($recordids[$i] ?? 0);
 
         if (!$userid) {
             continue;
         }
 
         // Validate scores.
-        if (!in_array($elascore,  [1, 2, 3])) {
+        if (!in_array($elascore, [1, 2, 3])) {
             $elascore  = 3;
         }
         if (!in_array($mathscore, [1, 2, 3])) {
@@ -257,7 +260,8 @@ if ($canmanage && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    $redirecturl = new moodle_url('/local/roomscheduler/students.php',
+    $redirecturl = new moodle_url(
+        '/local/roomscheduler/students.php',
         $selectedgroup ? ['groupid' => $selectedgroup] : []
     );
     redirect(
@@ -268,7 +272,7 @@ if ($canmanage && $_SERVER['REQUEST_METHOD'] === 'POST') {
     );
 }
 
-// --- Render page ---
+// Render page.
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('studentscores_heading', 'local_roomscheduler'));
 
@@ -287,7 +291,8 @@ if (!empty($groups)) {
         'action' => $filterurl->out(false),
         'class'  => 'mb-2',
     ]);
-    echo html_writer::tag('label',
+    echo html_writer::tag(
+        'label',
         get_string('selectgroup', 'local_roomscheduler') . ': ',
         ['for' => 'groupid', 'class' => 'mr-2 font-weight-bold']
     );
@@ -334,8 +339,9 @@ echo html_writer::tag('style', '
 ');
 
 if ($canmanage) {
-    // --- MANAGER VIEW: inline editable table ---
-    $formurl = new moodle_url('/local/roomscheduler/students.php',
+    // MANAGER VIEW: inline editable table.
+    $formurl = new moodle_url(
+        '/local/roomscheduler/students.php',
         $selectedgroup ? ['groupid' => $selectedgroup] : []
     );
 
@@ -371,11 +377,11 @@ if ($canmanage) {
     // Header.
     echo html_writer::start_tag('thead', ['class' => 'thead-light']);
     echo html_writer::start_tag('tr');
-    echo html_writer::tag('th', get_string('lastname',          'local_roomscheduler'), ['style' => 'width:15%']);
-    echo html_writer::tag('th', get_string('firstname',         'local_roomscheduler'), ['style' => 'width:13%']);
-    echo html_writer::tag('th', get_string('sisid',             'local_roomscheduler'), ['style' => 'width:9%']);
-    echo html_writer::tag('th', get_string('ela_score',         'local_roomscheduler'), ['style' => 'width:7%']);
-    echo html_writer::tag('th', get_string('math_score',        'local_roomscheduler'), ['style' => 'width:7%']);
+    echo html_writer::tag('th', get_string('lastname', 'local_roomscheduler'), ['style' => 'width:15%']);
+    echo html_writer::tag('th', get_string('firstname', 'local_roomscheduler'), ['style' => 'width:13%']);
+    echo html_writer::tag('th', get_string('sisid', 'local_roomscheduler'), ['style' => 'width:9%']);
+    echo html_writer::tag('th', get_string('ela_score', 'local_roomscheduler'), ['style' => 'width:7%']);
+    echo html_writer::tag('th', get_string('math_score', 'local_roomscheduler'), ['style' => 'width:7%']);
     echo html_writer::tag('th', 'Mon-Wed', ['style' => 'width:16%']);
     echo html_writer::tag('th', 'Thur/Fri', ['style' => 'width:16%']);
     echo html_writer::tag('th', 'Code', ['style' => 'width:7%; white-space:nowrap;']);
@@ -387,10 +393,10 @@ if ($canmanage) {
     foreach ($students as $userid => $student) {
         $uid             = (int)$userid;
         $rec             = isset($bystudent[$uid]) ? $bystudent[$uid] : null;
-        $recordid        = $rec ? (int)$rec->id             : 0;
-        $elaval          = $rec ? (int)$rec->ela_score       : 3;
-        $mathval         = $rec ? (int)$rec->math_score      : 3;
-        $homeroomval     = $rec ? s($rec->homeroom)          : '';
+        $recordid        = $rec ? (int)$rec->id : 0;
+        $elaval          = $rec ? (int)$rec->ela_score : 3;
+        $mathval         = $rec ? (int)$rec->math_score : 3;
+        $homeroomval     = $rec ? s($rec->homeroom) : '';
         $interventionval = $rec ? s($rec->intervention_room) : '';
         $sisid           = !empty($student->idnumber) ? s($student->idnumber) : '—';
 
@@ -408,7 +414,8 @@ if ($canmanage) {
         echo html_writer::tag('td', s($student->firstname));
         echo html_writer::tag('td', $sisid);
 
-        echo html_writer::tag('td',
+        echo html_writer::tag(
+            'td',
             html_writer::empty_tag('input', [
                 'type'  => 'number',
                 'name'  => 'ela_score[]',
@@ -419,7 +426,8 @@ if ($canmanage) {
             ])
         );
 
-        echo html_writer::tag('td',
+        echo html_writer::tag(
+            'td',
             html_writer::empty_tag('input', [
                 'type'  => 'number',
                 'name'  => 'math_score[]',
@@ -430,7 +438,8 @@ if ($canmanage) {
             ])
         );
 
-        echo html_writer::tag('td',
+        echo html_writer::tag(
+            'td',
             html_writer::empty_tag('input', [
                 'type'        => 'text',
                 'name'        => 'homeroom[]',
@@ -441,7 +450,8 @@ if ($canmanage) {
             ])
         );
 
-        echo html_writer::tag('td',
+        echo html_writer::tag(
+            'td',
             html_writer::empty_tag('input', [
                 'type'        => 'text',
                 'name'        => 'intervention_room[]',
@@ -454,7 +464,8 @@ if ($canmanage) {
 
         // Assignment code (read-only).
         $acode = $rec ? s($rec->assignment_code) : '';
-        echo html_writer::tag('td',
+        echo html_writer::tag(
+            'td',
             html_writer::span($acode, 'badge badge-secondary'),
             ['style' => 'text-align:center;']
         );
@@ -479,9 +490,8 @@ if ($canmanage) {
 
     // Assignment code legend.
     echo local_roomscheduler_code_legend();
-
 } else {
-    // --- TEACHER READ-ONLY VIEW ---
+    // TEACHER READ-ONLY VIEW.
     echo html_writer::start_tag('div', ['class' => 'table-responsive']);
     echo html_writer::start_tag('table', [
         'class' => 'table table-bordered table-hover table-sm students-table',
@@ -489,11 +499,11 @@ if ($canmanage) {
 
     echo html_writer::start_tag('thead', ['class' => 'thead-light']);
     echo html_writer::start_tag('tr');
-    echo html_writer::tag('th', get_string('lastname',          'local_roomscheduler'));
-    echo html_writer::tag('th', get_string('firstname',         'local_roomscheduler'));
-    echo html_writer::tag('th', get_string('sisid',             'local_roomscheduler'));
-    echo html_writer::tag('th', get_string('ela_score',         'local_roomscheduler'));
-    echo html_writer::tag('th', get_string('math_score',        'local_roomscheduler'));
+    echo html_writer::tag('th', get_string('lastname', 'local_roomscheduler'));
+    echo html_writer::tag('th', get_string('firstname', 'local_roomscheduler'));
+    echo html_writer::tag('th', get_string('sisid', 'local_roomscheduler'));
+    echo html_writer::tag('th', get_string('ela_score', 'local_roomscheduler'));
+    echo html_writer::tag('th', get_string('math_score', 'local_roomscheduler'));
     echo html_writer::tag('th', 'Mon-Wed');
     echo html_writer::tag('th', 'Thur/Fri');
     echo html_writer::tag('th', 'Code');
@@ -507,10 +517,10 @@ if ($canmanage) {
         $i++;
         $uid             = (int)$userid;
         $rec             = isset($bystudent[$uid]) ? $bystudent[$uid] : null;
-        $elaval          = $rec ? (int)$rec->ela_score        : 3;
-        $mathval         = $rec ? (int)$rec->math_score       : 3;
-        $homeroomval     = $rec ? s($rec->homeroom)           : '—';
-        $interventionval = $rec ? s($rec->intervention_room)  : '—';
+        $elaval          = $rec ? (int)$rec->ela_score : 3;
+        $mathval         = $rec ? (int)$rec->math_score : 3;
+        $homeroomval     = $rec ? s($rec->homeroom) : '—';
+        $interventionval = $rec ? s($rec->intervention_room) : '—';
         $sisid           = !empty($student->idnumber) ? s($student->idnumber) : '—';
 
         $minscore = min($elaval, $mathval);
@@ -525,7 +535,8 @@ if ($canmanage) {
         echo html_writer::tag('td', $homeroomval ?: '—');
         echo html_writer::tag('td', $interventionval ?: '—');
         $acode = $rec ? s($rec->assignment_code) : '—';
-        echo html_writer::tag('td',
+        echo html_writer::tag(
+            'td',
             html_writer::span($acode, 'badge badge-secondary'),
             ['style' => 'text-align:center;']
         );
@@ -534,7 +545,8 @@ if ($canmanage) {
 
     if ($i === 0) {
         echo html_writer::start_tag('tr');
-        echo html_writer::tag('td',
+        echo html_writer::tag(
+            'td',
             get_string('nostudents', 'local_roomscheduler'),
             ['colspan' => 7, 'class' => 'text-center text-muted']
         );
@@ -550,17 +562,23 @@ if ($canmanage) {
 }
 
 if ($canmanage && !empty($students)) {
-    $exporturl = new moodle_url('/local/roomscheduler/students.php',
+    $exporturl = new moodle_url(
+        '/local/roomscheduler/students.php',
         array_merge(['export' => 1], $selectedgroup ? ['groupid' => $selectedgroup] : [])
     );
-    $exportassignmentsurl = new moodle_url('/local/roomscheduler/students.php',
+    $exportassignmentsurl = new moodle_url(
+        '/local/roomscheduler/students.php',
         array_merge(['exportassignments' => 1], $selectedgroup ? ['groupid' => $selectedgroup] : [])
     );
     echo html_writer::div(
-        html_writer::link($exporturl, get_string('exportcsv', 'local_roomscheduler'),
+        html_writer::link(
+            $exporturl,
+            get_string('exportcsv', 'local_roomscheduler'),
             ['class' => 'btn btn-secondary btn-sm mr-2']
         ) .
-        html_writer::link($exportassignmentsurl, get_string('exportassignmentsbutton', 'local_roomscheduler'),
+        html_writer::link(
+            $exportassignmentsurl,
+            get_string('exportassignmentsbutton', 'local_roomscheduler'),
             ['class' => 'btn btn-secondary btn-sm']
         ),
         'mt-3'

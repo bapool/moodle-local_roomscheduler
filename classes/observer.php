@@ -24,13 +24,10 @@
 
 namespace local_roomscheduler;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Observer for local_roomscheduler events.
  */
 class observer {
-
     /**
      * Handle the course_reset_started event.
      *

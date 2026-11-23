@@ -41,7 +41,10 @@ $counselorcourseid = (int) get_config('local_roomscheduler', 'counselorcourseid'
 $counselorcontext  = context_course::instance($counselorcourseid);
 $managerroleid     = $DB->get_field('role', 'id', ['shortname' => 'manager']);
 $ismanager         = !empty($managerroleid) && user_has_role_assignment(
-                         $USER->id, $managerroleid, $counselorcontext->id);
+    $USER->id,
+    $managerroleid,
+    $counselorcontext->id
+);
 $canmanage         = ($isadmin || $ismanager);
 
 if (!$canmanage) {
@@ -56,7 +59,7 @@ $ran      = false;
 $dryrun   = false;
 $action   = optional_param('action', '', PARAM_ALPHA);
 
-// --- Handle form submission ---
+// Handle form submission.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_sesskey();
 
@@ -64,15 +67,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Just toggling the reward-room / lock-IEP checkboxes — don't run the scheduler.
         // These settings only affect the NEXT run; current assignments are never touched.
         $rewardsenabled = optional_param('rewardsenabled', 0, PARAM_INT);
-        $lockiep        = optional_param('lockiep',        0, PARAM_INT);
-        $lockall        = optional_param('lockall',        0, PARAM_INT);
+        $lockiep        = optional_param('lockiep', 0, PARAM_INT);
+        $lockall        = optional_param('lockall', 0, PARAM_INT);
         set_config('rewardsenabled', $rewardsenabled, 'local_roomscheduler');
-        set_config('lockiep',        $lockiep,        'local_roomscheduler');
-        set_config('lockall',        $lockall,        'local_roomscheduler');
+        set_config('lockiep', $lockiep, 'local_roomscheduler');
+        set_config('lockall', $lockall, 'local_roomscheduler');
         // Leveling gap for General rooms: 0 turns leveling off, capped at 20.
         $levelgap = optional_param('levelgap', 4, PARAM_INT);
         $levelgap = max(0, min(20, $levelgap));
-        set_config('levelgap',       $levelgap,       'local_roomscheduler');
+        set_config('levelgap', $levelgap, 'local_roomscheduler');
         redirect(new moodle_url('/local/roomscheduler/runscheduler.php'));
     }
 
@@ -126,17 +129,17 @@ if ($levelgap === false || $levelgap === '') {
 }
 $levelgap = (int)$levelgap;
 
-// --- Confirmation screen ---
+// Confirmation screen.
 // The main page's Run button only brings you here; it never runs the scheduler
 // by itself. The scheduler runs only if the Run button on THIS screen is clicked.
 if ($action === 'confirm') {
-    $on  = get_string('settingon',  'local_roomscheduler');
+    $on  = get_string('settingon', 'local_roomscheduler');
     $off = get_string('settingoff', 'local_roomscheduler');
 
     $a          = new stdClass();
     $a->rewards = $rewardsenabled ? $on : $off;
-    $a->lockiep = $lockiep        ? $on : $off;
-    $a->lockall = $lockall        ? $on : $off;
+    $a->lockiep = $lockiep ? $on : $off;
+    $a->lockall = $lockall ? $on : $off;
     $a->levelgap = $levelgap > 0 ? $levelgap
                                  : get_string('levelgap_off', 'local_roomscheduler');
 
@@ -164,7 +167,7 @@ if ($action === 'confirm') {
     die;
 }
 
-// --- Render page ---
+// Render page.
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('scheduler_heading', 'local_roomscheduler'));
 
@@ -173,7 +176,8 @@ local_roomscheduler_print_admin_tabs('scheduler', $counselorcourseid, $canmanage
 
 // Last run info.
 $lastrun = get_config('local_roomscheduler', 'lastrun');
-echo html_writer::tag('p',
+echo html_writer::tag(
+    'p',
     get_string('schedulerlastrun', 'local_roomscheduler') . ': ' .
     ($lastrun ? userdate($lastrun) : get_string('schedulerneverrun', 'local_roomscheduler')),
     ['class' => 'text-muted']
@@ -185,8 +189,8 @@ echo html_writer::start_tag('form', [
     'action' => '',
     'class'  => 'mb-3',
 ]);
-echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey',        'value' => sesskey()]);
-echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'togglerewards',  'value' => '1']);
+echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'togglerewards', 'value' => '1']);
 echo html_writer::start_tag('label', ['class' => 'font-weight-bold']);
 echo html_writer::empty_tag('input', array_merge(
     ['type' => 'checkbox', 'name' => 'rewardsenabled', 'value' => '1',
@@ -195,7 +199,8 @@ echo html_writer::empty_tag('input', array_merge(
 ));
 echo get_string('rewardsenabled', 'local_roomscheduler');
 echo html_writer::end_tag('label');
-echo html_writer::tag('p',
+echo html_writer::tag(
+    'p',
     $rewardsenabled
         ? get_string('rewardsenabled_on', 'local_roomscheduler')
         : get_string('rewardsenabled_off', 'local_roomscheduler'),
@@ -210,7 +215,8 @@ echo html_writer::empty_tag('input', array_merge(
 ));
 echo get_string('lockiep', 'local_roomscheduler');
 echo html_writer::end_tag('label');
-echo html_writer::tag('p',
+echo html_writer::tag(
+    'p',
     $lockiep
         ? get_string('lockiep_on', 'local_roomscheduler')
         : get_string('lockiep_off', 'local_roomscheduler'),
@@ -225,7 +231,8 @@ echo html_writer::empty_tag('input', array_merge(
 ));
 echo get_string('lockall', 'local_roomscheduler');
 echo html_writer::end_tag('label');
-echo html_writer::tag('p',
+echo html_writer::tag(
+    'p',
     $lockall
         ? get_string('lockall_on', 'local_roomscheduler')
         : get_string('lockall_off', 'local_roomscheduler'),
@@ -255,14 +262,16 @@ echo html_writer::empty_tag('input', [
     'class' => 'btn btn-secondary btn-sm',
 ]);
 echo html_writer::end_div();
-echo html_writer::tag('p',
+echo html_writer::tag(
+    'p',
     get_string('levelgap_desc', 'local_roomscheduler'),
     ['class' => 'text-muted small mb-0']
 );
 echo html_writer::end_tag('form');
 
 // Warning box.
-echo html_writer::tag('div',
+echo html_writer::tag(
+    'div',
     html_writer::tag('strong', '⚠ Warning: ') .
     'Running the scheduler will wipe and completely reassign ALL student intervention rooms. ' .
     'This cannot be undone. Make sure room assignments and student scores are up to date before running.',
@@ -295,7 +304,7 @@ echo html_writer::start_tag('form', [
     'action' => $pageurl,
     'class'  => 'm-0',
 ]);
-echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action',  'value' => 'dryrun']);
+echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'dryrun']);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 echo html_writer::tag('button', get_string('schedulerdryrun', 'local_roomscheduler'), [
     'type'  => 'submit',
@@ -305,7 +314,7 @@ echo html_writer::end_tag('form');
 
 echo html_writer::end_div();
 
-// --- Show results (from this run, or the most recent stored run) ---
+// Show results (from this run, or the most recent stored run).
 if ($results !== null) {
     if ($ran) {
         echo $OUTPUT->notification(get_string('schedulersuccess', 'local_roomscheduler'), 'notifysuccess');
@@ -333,7 +342,7 @@ if ($results !== null) {
         'step3swap'   => get_string('step3swap', 'local_roomscheduler'),
         'step3plus'   => get_string('step3plus', 'local_roomscheduler'),
         'step4'       => get_string('step4assigned', 'local_roomscheduler'),
-        'step4absent'   => get_string('step4absent',   'local_roomscheduler'),
+        'step4absent'   => get_string('step4absent', 'local_roomscheduler'),
         'step4behavior' => get_string('step4behavior', 'local_roomscheduler'),
         'displaced'   => get_string('step5assigned', 'local_roomscheduler'),
         'step6'       => get_string('step6assigned', 'local_roomscheduler'),
@@ -363,7 +372,8 @@ if ($results !== null) {
     if (!$dryrun) {
         $studentsurl = new moodle_url('/local/roomscheduler/students.php');
         echo html_writer::div(
-            html_writer::link($studentsurl,
+            html_writer::link(
+                $studentsurl,
                 'View Student Assignments →',
                 ['class' => 'btn btn-primary mt-2']
             ),
