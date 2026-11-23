@@ -507,6 +507,12 @@ function local_roomscheduler_run_scheduler() {
         if (isset($roomByNumber[$homeroom]) && isset($plusRooms[$roomByNumber[$homeroom]->teacherid])) {
             return false;
         }
+        // A Max # of 0 means the teacher takes no Thur/Fri students. The
+        // capacity pass skips IEP and Not Assigned rooms, so the student
+        // must not be placed here. Step 7 finds them a room with space.
+        if (isset($roomByNumber[$homeroom]) && (int)$roomByNumber[$homeroom]->maxstudents <= 0) {
+            return false;
+        }
         $assigned[$userid] = [
             'room'     => $homeroom,
             'code'     => $code,
@@ -1219,6 +1225,11 @@ function local_roomscheduler_run_scheduler() {
                 $unassignStudent($ouid);
                 $assignStudent($ouid, $disproom, 'S', 7);
                 $results['displaced']++;
+            } else if ($cap == 0) {
+                // No room with space, and this room takes no one. Hand the
+                // student to Step 7, which uses the least-full room if needed.
+                $unassignStudent($ouid);
+                $rewardHomeroomPending[] = $ouid;
             } else {
                 // No displacement room found — assign to homeroom as fallback.
                 $unassignStudent($ouid);
@@ -1388,6 +1399,45 @@ function local_roomscheduler_run_scheduler() {
 }
 
 /**
+ * Runs the scheduler as a dry run, without saving anything.
+ *
+ * The full scheduler runs inside a database transaction that is always rolled
+ * back. The counts are exactly what a real run would give right now with the
+ * current settings, but no Thur/Fri room, assignment code, teacher request,
+ * request archive row or Last run value is changed.
+ *
+ * @return array The same results array as local_roomscheduler_run_scheduler().
+ */
+function local_roomscheduler_dry_run_scheduler() {
+    global $DB;
+
+    $transaction = $DB->start_delegated_transaction();
+    try {
+        $results = local_roomscheduler_run_scheduler();
+    } catch (\Throwable $e) {
+        // Undo everything and pass the real error on.
+        $transaction->rollback($e);
+    }
+
+    // Always undo the run. rollback() throws the exception it is given, so
+    // catch our own marker exception and let anything else through.
+    try {
+        $transaction->rollback(new \moodle_exception('dryrunrollback', 'local_roomscheduler'));
+    } catch (\moodle_exception $e) {
+        if ($e->errorcode !== 'dryrunrollback') {
+            throw $e;
+        }
+    }
+
+    // The run called set_config() for lastrun and lastrunresults inside the
+    // rolled-back transaction. Clear the plugin's config cache so the next
+    // get_config() reads the restored values from the database.
+    cache_helper::invalidate_by_definition('core', 'config', [], 'local_roomscheduler');
+
+    return $results;
+}
+
+/**
  * Get all visible HS courses in the configured category and subcategories.
  */
 function local_roomscheduler_get_hs_courses($categoryid) {
@@ -1410,14 +1460,30 @@ function local_roomscheduler_get_hs_courses($categoryid) {
 
 /**
  * Get student grades for all HS courses.
+ *
+ * Only grades from courses where the student has an active enrolment are
+ * returned. Moodle keeps grade_grades rows after a student is unenrolled or
+ * suspended (schedule changes, last year's courses), and those old grades
+ * must never place a student in a D/F room or block a reward.
+ *
+ * An enrolment is active when the user enrolment is active, the enrolment
+ * method is enabled, and the current time is inside its start/end dates.
+ *
+ * @param array $courseids HS course ids.
+ * @param array $users Student records keyed by user id.
+ * @return array Grade percentages as [userid][courseid] => pct.
  */
 function local_roomscheduler_get_student_grades($courseids, $users) {
     global $DB;
-    if (empty($courseids) || empty($users)) return [];
+    if (empty($courseids) || empty($users)) {
+        return [];
+    }
 
     $userids = array_keys($users);
     list($coursesql, $courseparams) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, 'crs');
     list($usersql,   $userparams)   = $DB->get_in_or_equal($userids,   SQL_PARAMS_NAMED, 'usr');
+
+    $now = time();
 
     $sql = "SELECT gg.id, gg.userid, gi.courseid,
                    gg.finalgrade, gi.grademax
@@ -1430,9 +1496,27 @@ function local_roomscheduler_get_student_grades($courseids, $users) {
                AND gg.finalgrade IS NOT NULL
                AND gi.grademax > 0
                AND c.visible = 1
-               AND c.idnumber REGEXP '^[0-9]{3,4}[A-Za-z]{2}$'";
+               AND c.idnumber REGEXP '^[0-9]{3,4}[A-Za-z]{2}$'
+               AND EXISTS (
+                       SELECT 1
+                         FROM {user_enrolments} ue
+                         JOIN {enrol} e ON e.id = ue.enrolid
+                        WHERE ue.userid = gg.userid
+                          AND e.courseid = gi.courseid
+                          AND ue.status = :uestatus
+                          AND e.status = :estatus
+                          AND ue.timestart <= :now1
+                          AND (ue.timeend = 0 OR ue.timeend > :now2)
+                   )";
 
-    $rows   = $DB->get_records_sql($sql, array_merge($courseparams, $userparams));
+    $params = array_merge($courseparams, $userparams, [
+        'uestatus' => ENROL_USER_ACTIVE,
+        'estatus'  => ENROL_INSTANCE_ENABLED,
+        'now1'     => $now,
+        'now2'     => $now,
+    ]);
+
+    $rows   = $DB->get_records_sql($sql, $params);
     $grades = [];
     foreach ($rows as $row) {
         $grades[$row->userid][$row->courseid] = round(($row->finalgrade / $row->grademax) * 100, 2);

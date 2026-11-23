@@ -53,6 +53,7 @@ if (!$canmanage) {
 
 $results  = null;
 $ran      = false;
+$dryrun   = false;
 $action   = optional_param('action', '', PARAM_ALPHA);
 
 // --- Handle form submission ---
@@ -75,14 +76,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect(new moodle_url('/local/roomscheduler/runscheduler.php'));
     }
 
-    // Only the Run button on the confirmation screen (which posts action=run)
-    // can start a run. Any other POST to this page is ignored.
-    if ($action !== 'run') {
+    if ($action === 'dryrun') {
+        // Dry run: the full scheduler runs and is then rolled back, so the
+        // counts can be checked without changing any assignments.
+        $results = local_roomscheduler_dry_run_scheduler();
+        $dryrun  = true;
+    } else if ($action === 'run') {
+        // Only the Run button on the confirmation screen (which posts
+        // action=run) can start a real run.
+        $results = local_roomscheduler_run_scheduler();
+        $ran     = true;
+    } else {
+        // Any other POST to this page is ignored.
         redirect(new moodle_url('/local/roomscheduler/runscheduler.php'));
     }
-
-    $results = local_roomscheduler_run_scheduler();
-    $ran     = true;
 } else {
     // Not a fresh run — load the results from the last time it was run, if any.
     $storedresults = get_config('local_roomscheduler', 'lastrunresults');
@@ -262,24 +269,54 @@ echo html_writer::tag('div',
     ['class' => 'alert alert-warning']
 );
 
+// Run and Dry Run buttons, side by side. Both are plain forms in one flex
+// row (not single_button) so they line up exactly.
+$pageurl = (new moodle_url('/local/roomscheduler/runscheduler.php'))->out(false);
+echo html_writer::start_div('d-flex flex-wrap align-items-center mb-4');
+
 // Run button — opens the confirmation screen only. It cannot run the
 // scheduler by itself (it is a GET to action=confirm, not a POST).
-$runbutton = new single_button(
-    new moodle_url('/local/roomscheduler/runscheduler.php', ['action' => 'confirm']),
-    get_string('schedulerrun', 'local_roomscheduler'),
-    'get',
-    single_button::BUTTON_DANGER
-);
-$runbutton->class = 'mb-4';
-echo $OUTPUT->render($runbutton);
+echo html_writer::start_tag('form', [
+    'method' => 'get',
+    'action' => $pageurl,
+    'class'  => 'm-0 mr-2',
+]);
+echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'confirm']);
+echo html_writer::tag('button', get_string('schedulerrun', 'local_roomscheduler'), [
+    'type'  => 'submit',
+    'class' => 'btn btn-danger',
+]);
+echo html_writer::end_tag('form');
+
+// Dry Run button — runs the scheduler and rolls it back, so it only shows
+// the counts. Nothing is saved, so it needs no confirmation screen.
+echo html_writer::start_tag('form', [
+    'method' => 'post',
+    'action' => $pageurl,
+    'class'  => 'm-0',
+]);
+echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action',  'value' => 'dryrun']);
+echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+echo html_writer::tag('button', get_string('schedulerdryrun', 'local_roomscheduler'), [
+    'type'  => 'submit',
+    'class' => 'btn btn-secondary',
+]);
+echo html_writer::end_tag('form');
+
+echo html_writer::end_div();
 
 // --- Show results (from this run, or the most recent stored run) ---
 if ($results !== null) {
     if ($ran) {
         echo $OUTPUT->notification(get_string('schedulersuccess', 'local_roomscheduler'), 'notifysuccess');
     }
+    if ($dryrun) {
+        echo $OUTPUT->notification(get_string('dryrunnotice', 'local_roomscheduler'), 'notifyinfo');
+    }
 
-    echo html_writer::tag('h4', get_string('scheduleresults', 'local_roomscheduler'), ['class' => 'mt-3']);
+    $resultsheading = $dryrun ? get_string('dryrunresults', 'local_roomscheduler')
+                              : get_string('scheduleresults', 'local_roomscheduler');
+    echo html_writer::tag('h4', $resultsheading, ['class' => 'mt-3']);
 
     echo html_writer::start_tag('table', ['class' => 'table table-bordered table-sm w-auto']);
     echo html_writer::start_tag('tbody');
@@ -321,15 +358,18 @@ if ($results !== null) {
     echo html_writer::end_tag('tbody');
     echo html_writer::end_tag('table');
 
-    // Link to view student results.
-    $studentsurl = new moodle_url('/local/roomscheduler/students.php');
-    echo html_writer::div(
-        html_writer::link($studentsurl,
-            'View Student Assignments →',
-            ['class' => 'btn btn-primary mt-2']
-        ),
-        'mt-2'
-    );
+    // Link to view student results. Not shown after a dry run, because the
+    // Students page still shows the current (unchanged) assignments.
+    if (!$dryrun) {
+        $studentsurl = new moodle_url('/local/roomscheduler/students.php');
+        echo html_writer::div(
+            html_writer::link($studentsurl,
+                'View Student Assignments →',
+                ['class' => 'btn btn-primary mt-2']
+            ),
+            'mt-2'
+        );
+    }
 }
 
 echo $OUTPUT->footer();

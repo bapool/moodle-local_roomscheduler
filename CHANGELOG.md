@@ -4,6 +4,32 @@ All notable changes to the NTHS Intervention Room Scheduler plugin will be docum
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to date-based versioning (YYYYMMDDXX).
 
+## [2026111700] - 2026-11-17 (0.5.17)
+
+### Fixed
+- **Students were placed in a Not Assigned room with a Max # of 0.** Step 6 (Homeroom default) put every remaining student in their Mon-Wed homeroom without checking Max #. The capacity pass then empties rooms set to 0, but it skips IEP and Not Assigned rooms, so those students stayed. For example, three students were given a Thur/Fri room with a teacher set to Not Assigned / 0.
+- Step 6 now skips any homeroom with a Max # of 0. Those students go to Step 7, which places them in the least-full room with space (code S), or the least-full room if every room is full.
+- In the capacity pass, a student moved out of a room set to 0 who cannot find a room with space now goes to Step 7 too, instead of being put back in that same room.
+- Locked IEP students (Step 0, Lock IEP Rooms) are not changed. They still stay in their IEP room even when its Max # is 0.
+- No database change.
+
+## [2026110900] - 2026-11-09 (0.5.16)
+
+### Added
+- **Dry Run button** on the Run Scheduler page, next to Run Scheduler Now. It runs the full scheduler with the current settings and shows the Scheduler Results counts, but saves nothing. No Thur/Fri room, assignment code, teacher request, request archive row or Last run time is changed. Use it to see what a real run would give, for example how many students qualify for a reward room (Step 4) before deciding how many reward rooms are needed.
+- New function `local_roomscheduler_dry_run_scheduler()` in `scheduler.php`. It runs `local_roomscheduler_run_scheduler()` inside a database transaction that is always rolled back, so the counts come from the same code as a real run.
+- After a dry run, the page shows a notice that nothing was saved, the heading reads **Dry Run Results (nothing saved)**, and the View Student Assignments button is hidden.
+- New strings: `schedulerdryrun`, `dryrunresults`, `dryrunnotice`, `dryrunrollback`.
+- No database change.
+
+## [2026110200] - 2026-11-02 (0.5.15)
+
+### Fixed
+- **D/F placements and the Class column used grades from courses the student was no longer in.** Moodle keeps a student's course total after they are unenrolled or suspended, for example after a schedule change. The scheduler read every course total in the HS category, so a dropped course with a D or F could still place a student in that teacher's Thur/Fri room with a D or F code. For example, a student with all A's and B's in her real classes was placed with a D for a Physical Science course she had dropped.
+- `local_roomscheduler_get_student_grades()` now only returns a grade when the student has an active enrolment in that course. That means the user enrolment is active, the enrolment method is enabled, and today falls between the enrolment's start and end dates. Old grades from dropped courses and last year's courses are ignored.
+- The same grades are used for the A/B reward check, so an old grade from a dropped course can no longer keep a student out of a reward room either.
+- No database change. Run the scheduler again after upgrading to correct the current Thur/Fri assignments.
+
 ## [2026103000] - 2026-10-30 (0.5.14)
 
 ### Added

@@ -64,7 +64,7 @@ The steps:
 3. **D/F grade assignments (D/F codes)** — Students assigned to the failing course teacher's room, lowest grade first. If that teacher's ELA1/MTH1 room is full of cross-subject-swap students, the scheduler will try moving one of them to a *different* same-type room so the D/F student can join their own teacher.
 4. **Reward room (R code)** — Students with all A/B grades AND attendance above threshold get distributed evenly across every room checked as a Reward room, ignoring capacity. This step can be turned off entirely from a toggle on the Run Scheduler page — when off, no reward rooms are used and every room is treated as normal.
 5. **Other moves (S code)** — Students displaced from over-capacity rooms to make space for higher-priority assignments, preferring whichever eligible room currently has the fewest students.
-6. **Homeroom default (H code)** — All remaining students stay in their Intervention (homeroom) room. Reward rooms are never used as a homeroom default.
+6. **Homeroom default (H code)** — All remaining students stay in their Intervention (homeroom) room. Reward rooms are never used as a homeroom default, and neither is a room with a Max # of 0 (the teacher takes no Thur/Fri students). Those students are moved to the least-full room with space instead (code S). Locked IEP students (Step 0) are the one exception: they stay in their IEP room even when its Max # is 0.
 
 If **Lock IEP Rooms** is checked on the Run Scheduler page, a Step 0 runs before any of the above: any student whose Intervention (homeroom) room is typed IEP is locked into that same room for Th/Fri immediately, so none of the later steps can move them out of it. Off by default.
 
@@ -131,6 +131,18 @@ Reward rooms are no longer a single global setting — instead, check the **Rewa
 
 All defaults are pre-loaded on installation. Adjustable settings are clearly marked with `*** NTLS DEFAULT ***` comments in `settings.php`.
 
+## Dry Run (added in 0.5.16)
+
+**What it does:** the **Dry Run** button, next to **Run Scheduler Now** on the Run Scheduler page, runs the full scheduler with the current settings and shows the Scheduler Results counts, but saves nothing. No student's Thur/Fri room or assignment code changes, teacher requests are not cleared or archived, and the "Last run" time stays the same. It has no confirmation screen because it changes nothing.
+
+**Why it exists:** to see what a real run would give before running it, especially how many students qualify for a reward room, so you can decide how many reward rooms to set up that week. For example, if Step 4 shows 77 reward students, 4 reward rooms would hold about 19 each.
+
+**How to use it for reward rooms:** Step 4 only counts reward students when **Enable reward room scheduling** is checked *and* at least one room has **Reward** checked in Room Settings. Otherwise Step 4 shows 0 and those students are placed by the other steps. Reward rooms ignore capacity, so the Step 4 number is every qualifying student, whatever the number of reward rooms checked.
+
+**How it works:** `local_roomscheduler_dry_run_scheduler()` in `scheduler.php` calls the normal `local_roomscheduler_run_scheduler()` inside a database transaction and then always rolls it back. Because it is the same code as a real run, the numbers match exactly what Run Scheduler Now would give at that moment. Afterwards the plugin's config cache is cleared so the restored "Last run" values are read back. The results heading reads **Dry Run Results (nothing saved)**, a notice says nothing was saved, and the View Student Assignments button is hidden, because that page still shows the current assignments.
+
+**Note:** the counts can change between a dry run and a real run if grades, attendance, behavior, requests or room settings change in between.
+
 ## Set Levels from State Tests
 
 The **Set Levels** button on the Set Levels page sets initial ELA and Math intervention levels by reading scores from the `NTstatetesting` table. It is only visible when that table exists and contains data.
@@ -154,7 +166,7 @@ The same page also shows the **Intervention Counts** table (ELA/Math Level 1 and
 
 - **SIS ID** maps to `mdl_user.idnumber` (StudentNumber in contacts table)
 - **CSV import/export** matches students by SIS ID; the Import Rooms page reads both export formats by header name
-- **Grades** pulled from Moodle gradebook for HS courses matching pattern `^[0-9]{3,4}[A-Za-z]{2}$`
+- **Grades** pulled from Moodle gradebook course totals for HS courses matching pattern `^[0-9]{3,4}[A-Za-z]{2}$`, **only for courses the student is actively enrolled in** (added in 0.5.15). An active enrolment means the user enrolment is active, the enrolment method is enabled, and today is between its start and end dates. Moodle keeps a course total after a student drops a course or is suspended, so without this check a dropped course or last year's course could place a student in a D/F room or keep them out of a reward room. Before 0.5.15, a student who had dropped Physical Science with a D was still placed in a Physical Science teacher's room with a D code.
 - **Grade level** (9-12) pulled from `mdl_contacts.GradeLevelCode`, used for Set Levels' senior cap and the Export Room Assignments file
 - **Attendance** factored into reward eligibility using tardy penalty (4 tardies = 1 absent day)
 - **State test scores** read from external `NTstatetesting` table via `contacts` table linkage
